@@ -4,7 +4,7 @@ import pytest
 from rich.console import Console
 
 import mainboard
-from mainboard import GPU, NPU, Machine, MachineView
+from mainboard import GPU, NPU, ClockInfo, Machine, MachineView
 from mainboard.enums import Vendor
 from mainboard.providers.apple import AppleGPU, AppleNPU
 
@@ -92,9 +92,7 @@ def test_gpu_clock_label_not_exposed_when_zero() -> None:
 
     class ZeroClockGpu(mainboard.NvidiaGPU):
         @property
-        def clocks(self) -> object:
-            from mainboard import ClockInfo
-
+        def clocks(self) -> ClockInfo:
             return ClockInfo(sm_mhz=0, memory_mhz=0)
 
     assert MachineView(Machine()).gpu_clock_label(ZeroClockGpu(index=0)) == "not exposed"

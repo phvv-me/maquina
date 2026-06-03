@@ -267,15 +267,16 @@ def test_nvidia_falls_back_to_runtime_when_nvml_memory_unsupported(
 def test_nvidia_apis_imports_real_module_surface(monkeypatch: pytest.MonkeyPatch) -> None:
     """`NvidiaApis` wires runtime/system/nvml/core handles from `import_module`."""
     fake_nvml = FakeNvidiaApis().nvml
+    fake_device = FakeNvidiaApis().cuda_device_type
     modules = {
         "cuda.bindings.runtime": FakeNvidiaApis().runtime,
         "cuda.core.system": FakeNvidiaApis().system,
         "cuda.bindings._nvml": fake_nvml,
-        "cuda.core": type("Core", (), {"Device": FakeNvidiaApis().cuda_device_type}),
+        "cuda.core": type("Core", (), {"Device": fake_device}),
     }
     monkeypatch.setattr(nvidia, "import_module", lambda name: modules[name])
     apis = nvidia.NvidiaApis()
-    assert apis.cuda_device_type is modules["cuda.core"].Device
+    assert apis.cuda_device_type is fake_device
     assert apis.nvml is fake_nvml
 
 
