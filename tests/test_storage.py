@@ -22,7 +22,7 @@ def fake_sysfs(files: dict[str, str], monkeypatch: pytest.MonkeyPatch) -> None:
 
     def read_text(self: Path, *args: object, **kwargs: object) -> str:
         try:
-            return files[str(self)]
+            return files[self.as_posix()]  # as_posix so forward-slash keys match on Windows
         except KeyError:
             raise FileNotFoundError(self) from None
 

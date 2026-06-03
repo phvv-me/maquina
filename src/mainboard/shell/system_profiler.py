@@ -4,7 +4,7 @@ import json
 from functools import cache
 from typing import Any
 
-from plumbum import local
+from plumbum import CommandNotFound, local
 
 type SystemProfile = dict[str, list[dict[str, Any]]]
 
@@ -21,5 +21,5 @@ def system_profiler(*datatypes: str) -> SystemProfile:
     """
     try:
         return json.loads(local["system_profiler"]("-json", *datatypes))
-    except (OSError, json.JSONDecodeError):
+    except (CommandNotFound, OSError, json.JSONDecodeError):
         return {}

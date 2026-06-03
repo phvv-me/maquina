@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from plumbum import local
+from plumbum import CommandNotFound, local
 
 
 def sysctl(name: str) -> str:
@@ -13,5 +13,5 @@ def sysctl(name: str) -> str:
     """
     try:
         return local["sysctl"]["-n", name]().strip()
-    except (OSError, KeyError):
+    except (CommandNotFound, OSError, KeyError):
         return ""
