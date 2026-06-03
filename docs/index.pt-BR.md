@@ -1,3 +1,7 @@
+<div align="center" markdown>
+![mainboard banner](assets/banner.png){ width="760" }
+</div>
+
 # Mainboard
 
 **Topologia de hardware e snapshots de máquina para Python.**
@@ -17,7 +21,7 @@ Em máquinas Linux com GPUs NVIDIA, instale o extra do provider CUDA:
 pip install "mainboard[nvidia]"
 ```
 
-Trabalhando em um projeto [chefe](https://phvv.me/chefe)? `chefe add mainboard --pypi`.
+Trabalhando em um projeto [chefe](https://phvv.me/chefe)? `chefe add mainboard -l python`.
 
 ## CLI
 

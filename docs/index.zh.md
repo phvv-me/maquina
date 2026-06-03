@@ -1,3 +1,7 @@
+<div align="center" markdown>
+![mainboard banner](assets/banner.png){ width="760" }
+</div>
+
 # Mainboard
 
 **面向 Python 的硬件拓扑与机器快照。**
@@ -17,7 +21,7 @@ mainboard
 pip install "mainboard[nvidia]"
 ```
 
-在 [chefe](https://phvv.me/chefe) 项目中工作？`chefe add mainboard --pypi`。
+在 [chefe](https://phvv.me/chefe) 项目中工作？`chefe add mainboard -l python`。
 
 ## CLI
 

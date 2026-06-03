@@ -1,3 +1,7 @@
+<div align="center" markdown>
+![mainboard banner](assets/banner.png){ width="760" }
+</div>
+
 # Mainboard
 
 **Python 向けのハードウェアトポロジーとマシンスナップショット。**
@@ -17,7 +21,7 @@ NVIDIA GPU を搭載した Linux マシンでは、CUDA プロバイダの extra
 pip install "mainboard[nvidia]"
 ```
 
-[chefe](https://phvv.me/chefe) プロジェクトで作業していますか？ `chefe add mainboard --pypi`。
+[chefe](https://phvv.me/chefe) プロジェクトで作業していますか？ `chefe add mainboard -l python`。
 
 ## CLI
 

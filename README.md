@@ -22,7 +22,7 @@ pip install mainboard
 Working in a [chefe](https://phvv.me/chefe) project? Add it to your manifest:
 
 ```sh
-chefe add mainboard --pypi
+chefe add mainboard -l python
 ```
 
 On Linux with NVIDIA GPUs, pull the CUDA provider extra: `pip install "mainboard[nvidia]"`.
