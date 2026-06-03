@@ -74,6 +74,10 @@ target-version = "py313"
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]
 
+[tool.pyrefly]
+project-includes = ["src", "tests"]
+search-path = ["src", "."]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q -ra"
