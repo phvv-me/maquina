@@ -52,7 +52,3 @@ The CLI renders a Rich schematic of the board:
 ```sh
 mainboard
 ```
-
-## Lore
-
-A mainboard is where the silicon lives. This one just tells you what is plugged in.
