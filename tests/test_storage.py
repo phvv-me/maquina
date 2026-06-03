@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from pathlib import Path
-
 import pytest
 
 from mainboard.enums import DiskKind
+from mainboard.models import drive_info as di_mod
+from mainboard.models import host_disk as hd_mod
 from mainboard.models import memory_card as mc_mod
 from mainboard.models.drive_info import DriveInfo
 from mainboard.models.host_disk import HostDisk
@@ -158,12 +158,7 @@ def test_partition_info_tolerates_inaccessible_mount(monkeypatch: pytest.MonkeyP
 
 def test_drive_info_missing_sysfs_yields_defaults(monkeypatch: pytest.MonkeyPatch) -> None:
     """A drive with no sysfs files reports unknown model/serial and zero size."""
-    monkeypatch.setattr(Path, "exists", lambda self: False)
-
-    def boom(self: object) -> str:
-        raise OSError
-
-    monkeypatch.setattr(Path, "read_text", boom)
+    monkeypatch.setattr(di_mod.shell, "read", lambda path: "")
     monkeypatch.setattr(DriveInfo, "partitions", ())
     drive = DriveInfo(name="sdz")
     assert drive.model is None
@@ -188,8 +183,7 @@ def test_drive_info_classifies_kind_and_size(monkeypatch: pytest.MonkeyPatch) ->
         "/sys/block/nvme0n1/device/model": "Samsung SSD 990",
         "/sys/block/nvme0n1/device/serial": "S1234",
     }
-    monkeypatch.setattr(Path, "read_text", lambda self: files[str(self)])
-    monkeypatch.setattr(Path, "exists", lambda self: str(self) in files)
+    monkeypatch.setattr(di_mod.shell, "read", lambda path: files.get(str(path), ""))
     monkeypatch.setattr(DriveInfo, "partitions", ())
     drive = DriveInfo(name="nvme0n1")
     assert drive.device == "/dev/nvme0n1"
@@ -206,16 +200,16 @@ def test_drive_info_rotational_kind(
 ) -> None:
     """A non-NVMe drive is SSD or HDD based on the sysfs rotational flag."""
     rot_path = "/sys/block/sda/queue/rotational"
-    monkeypatch.setattr(Path, "exists", lambda self: str(self) == rot_path)
-    monkeypatch.setattr(Path, "read_text", lambda self: rotational)
+    monkeypatch.setattr(
+        di_mod.shell, "read", lambda path: rotational if str(path) == rot_path else ""
+    )
     assert DriveInfo(name="sda").kind == expected
 
 
 def test_drive_info_read_sys_skips_placeholders(monkeypatch: pytest.MonkeyPatch) -> None:
     """sysfs placeholder values like `unknown` collapse to `None`."""
-    monkeypatch.setattr(Path, "read_text", lambda self: "unknown")
-    monkeypatch.setattr(Path, "exists", lambda self: True)
-    assert DriveInfo._read_sys(Path("/sys/block/sda/device/model")) is None
+    monkeypatch.setattr(di_mod.shell, "read", lambda path: "unknown")
+    assert DriveInfo._read_sys("/sys/block/sda/device/model") is None
 
 
 def test_host_disk_enumerates_and_aggregates(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -228,15 +222,11 @@ def test_host_disk_enumerates_and_aggregates(monkeypatch: pytest.MonkeyPatch) ->
         def __lt__(self, other: DevDir) -> bool:
             return self.name < other.name
 
-        def __truediv__(self, other: str) -> Path:
-            return Path(f"/sys/block/{self.name}/{other}")
-
     monkeypatch.setattr(
         "mainboard.models.host_disk.Path.iterdir",
         lambda self: iter([DevDir("nvme0n1"), DevDir("loop0")]),
     )
-    monkeypatch.setattr(Path, "exists", lambda self: True)
-    monkeypatch.setattr(Path, "read_text", lambda self: "200")
+    monkeypatch.setattr(hd_mod.shell, "read", lambda path: "200")
     monkeypatch.setattr(DriveInfo, "size_bytes", 200 * 512)
     monkeypatch.setattr(DriveInfo, "partitions", ())
     host = HostDisk()

@@ -4,11 +4,10 @@ import platform
 import re
 from collections import Counter
 from functools import cached_property
-from pathlib import Path
 
 import psutil
-from plumbum import local
 
+from . import shell
 from .enums import Vendor
 from .models.host_disk import HostDisk
 from .models.host_memory import HostMemory
@@ -46,11 +45,8 @@ class Host:
     @cached_property
     def cpu(self) -> str:
         """CPU model name from `platform` or `/proc/cpuinfo`."""
-        if platform.system() == "Darwin":
-            try:
-                return local["sysctl"]["-n", "machdep.cpu.brand_string"]().strip()
-            except (OSError, KeyError):
-                pass
+        if platform.system() == "Darwin" and (brand := shell.sysctl("machdep.cpu.brand_string")):
+            return brand
         text = self.cpuinfo_text
         if not text:
             return platform.processor() or "unknown"
@@ -74,10 +70,7 @@ class Host:
     @cached_property
     def cpuinfo_text(self) -> str:
         """Raw Linux `/proc/cpuinfo`, or an empty string when unavailable."""
-        try:
-            return Path("/proc/cpuinfo").read_text()
-        except OSError:
-            return ""
+        return shell.read("/proc/cpuinfo")
 
     @cached_property
     def cpuinfo_records(self) -> tuple[dict[str, str], ...]:

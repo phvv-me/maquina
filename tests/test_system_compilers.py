@@ -38,10 +38,10 @@ def test_cxx_prefers_grace_clang_on_aarch64(monkeypatch: pytest.MonkeyPatch) -> 
         lambda name: f"/opt/{name}" if name == "clang++" else None,
     )
     monkeypatch.setattr(
-        "mainboard.models.system_compilers.cached_run", lambda *cmd: "clang version for grace"
+        "mainboard.models.system_compilers.shell.run", lambda *cmd: "clang version for grace"
     )
     monkeypatch.setattr(
-        "mainboard.models.compiler_info.cached_run", lambda *cmd: "clang version for grace"
+        "mainboard.models.compiler_info.shell.run", lambda *cmd: "clang version for grace"
     )
     compilers = SystemCompilers(arch="aarch64", cpu="Neoverse-V2", cuda_arch="90")
     assert compilers.cxx.path == Path("/opt/clang++")
@@ -55,7 +55,7 @@ def test_cxx_falls_back_to_gpp(monkeypatch: pytest.MonkeyPatch) -> None:
         lambda name: f"/usr/bin/{name}" if name == "g++" else None,
     )
     monkeypatch.setattr(
-        "mainboard.models.compiler_info.cached_run", lambda *cmd: "g++ (GCC) 13.2.0"
+        "mainboard.models.compiler_info.shell.run", lambda *cmd: "g++ (GCC) 13.2.0"
     )
     compilers = SystemCompilers(arch="x86_64", cpu="Xeon", cuda_arch="90")
     assert compilers.cxx.path == Path("/usr/bin/g++")
@@ -76,7 +76,7 @@ def test_nvcc_found_on_path(monkeypatch: pytest.MonkeyPatch) -> None:
         lambda name: "/usr/local/cuda/bin/nvcc" if name == "nvcc" else None,
     )
     monkeypatch.setattr(
-        "mainboard.models.compiler_info.cached_run",
+        "mainboard.models.compiler_info.shell.run",
         lambda *cmd: "nvcc: NVIDIA (R) Cuda compiler\nrelease 12.4, V12.4.131",
     )
     compilers = SystemCompilers(arch="x86_64", cpu="Xeon", cuda_arch="124")

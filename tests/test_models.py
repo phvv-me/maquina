@@ -25,7 +25,6 @@ from mainboard import (
     Utilization,
 )
 from mainboard.enums import Scheduler, UnitKind, Vendor
-from mainboard.models.commands import cached_run
 from mainboard.models.compiler_info import CompilerInfo
 from mainboard.models.dimm_card import DimmCard
 from mainboard.models.disk import DriveInfo as LegacyDriveInfo
@@ -297,26 +296,6 @@ def test_legacy_disk_read_sys_filters_placeholders(monkeypatch: pytest.MonkeyPat
     assert legacy._read_sys(Path("/x")) is None
 
 
-def test_cached_run_invokes_subprocess_once(monkeypatch: pytest.MonkeyPatch) -> None:
-    """`cached_run` builds the argv, returns stdout, and caches by command."""
-    calls: list[tuple[str, ...]] = []
-
-    class Completed:
-        stdout = "clang version 17.0.0\n"
-
-    def fake_run(command: list[str], **kwargs: object) -> Completed:
-        calls.append(tuple(command))
-        return Completed()
-
-    monkeypatch.setattr("mainboard.models.commands.subprocess.run", fake_run)
-    cached_run.cache_clear()
-    first = cached_run("clang", "--version")
-    second = cached_run("clang", "--version")
-    assert first == second == "clang version 17.0.0\n"
-    assert calls == [("clang", "--version")]
-    cached_run.cache_clear()
-
-
 @pytest.mark.parametrize(
     ("binary", "output", "expected_kind", "expected_version"),
     [
@@ -335,7 +314,7 @@ def test_compiler_info_parses_kind_and_version(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """`CompilerInfo` normalizes kind and pulls a release string from `--version`."""
-    monkeypatch.setattr("mainboard.models.compiler_info.cached_run", lambda *cmd: output)
+    monkeypatch.setattr("mainboard.models.compiler_info.shell.run", lambda *cmd: output)
     info = CompilerInfo(path=Path(f"/usr/bin/{binary}"))
     assert info.kind == expected_kind
     if expected_version is None:

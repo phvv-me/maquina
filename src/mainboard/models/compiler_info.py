@@ -4,9 +4,9 @@ import re
 from functools import cached_property
 from pathlib import Path
 
+from .. import shell
 from ..enums import CompilerKind
 from .base import FrozenModel
-from .commands import cached_run
 
 _NVCC_BINARIES = frozenset({"nvcc", "cuda-nvcc"})
 
@@ -22,7 +22,7 @@ class CompilerInfo(FrozenModel):
     @cached_property
     def _version_output(self) -> str:
         """Raw lowercase `--version` output."""
-        return cached_run(str(self.path), "--version").lower()
+        return shell.run(str(self.path), "--version").lower()
 
     @cached_property
     def kind(self) -> CompilerKind:

@@ -6,6 +6,7 @@ from typing import Any
 import pytest
 from hypothesis import strategies as st
 
+from mainboard import shell
 from mainboard.providers import apple, nvidia
 
 APPLE_PROFILE: dict[str, Any] = {
@@ -33,7 +34,7 @@ APPLE_PROFILE: dict[str, Any] = {
 
 def reset_apple_caches() -> None:
     """Drop every cached macOS profiler result so a fresh fixture takes effect."""
-    apple.apple_system_profile.cache_clear()
+    shell.system_profiler.cache_clear()
     apple.AppleGPU.gpu_records.cache_clear()
 
 

@@ -106,33 +106,18 @@ def test_apple_unavailable_off_apple_silicon(monkeypatch: pytest.MonkeyPatch) ->
     assert AppleNPU.all() == ()
 
 
-def test_apple_system_profile_parses_profiler_json(monkeypatch: pytest.MonkeyPatch) -> None:
-    """`apple_system_profile` runs `system_profiler -json` and parses its output."""
-    payload = '{"SPHardwareDataType": [{"chip_type": "Apple M4 Pro"}]}'
-
-    class FakeProfiler:
-        def __getitem__(self, args: object) -> FakeProfiler:
-            return self
-
-        def __call__(self) -> str:
-            return payload
-
-    apple.apple_system_profile.cache_clear()
-    monkeypatch.setattr(apple, "local", {"system_profiler": FakeProfiler()})
-    profile = apple.apple_system_profile()
-    assert profile["SPHardwareDataType"][0]["chip_type"] == "Apple M4 Pro"
-    apple.apple_system_profile.cache_clear()
+def test_apple_system_profile_reads_shell(monkeypatch: pytest.MonkeyPatch) -> None:
+    """`apple_system_profile` returns the shell-parsed profiler payload."""
+    profile = {"SPHardwareDataType": [{"chip_type": "Apple M4 Pro"}]}
+    monkeypatch.setattr(apple.shell, "system_profiler", lambda *types: profile)
+    assert apple.apple_system_profile()["SPHardwareDataType"][0]["chip_type"] == "Apple M4 Pro"
 
 
 def test_apple_gpu_records_tolerate_profiler_failure(monkeypatch: pytest.MonkeyPatch) -> None:
-    """A profiler error yields no Apple GPU records instead of raising."""
+    """An empty profiler payload yields no Apple GPU records instead of raising."""
     monkeypatch.setattr(apple.platform, "system", lambda: "Darwin")
-
-    def boom() -> object:
-        raise OSError("system_profiler missing")
-
     apple.AppleGPU.gpu_records.cache_clear()
-    monkeypatch.setattr(apple, "apple_system_profile", boom)
+    monkeypatch.setattr(apple, "apple_system_profile", lambda: {})
     assert apple.AppleGPU.gpu_records() == ()
 
 

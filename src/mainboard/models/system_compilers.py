@@ -5,8 +5,8 @@ import sys
 from functools import cached_property
 from pathlib import Path
 
+from .. import shell
 from .base import FrozenModel
-from .commands import cached_run
 from .compiler_info import CompilerInfo
 
 
@@ -39,7 +39,7 @@ class SystemCompilers(FrozenModel):
         if (
             self.arch == "aarch64"
             and (p := shutil.which("clang++"))
-            and "grace" in cached_run(p, "--version").lower()
+            and "grace" in shell.run(p, "--version").lower()
         ):
             return CompilerInfo(path=Path(p))
         if p := shutil.which("g++") or shutil.which("clang++"):

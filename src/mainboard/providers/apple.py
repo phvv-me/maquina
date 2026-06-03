@@ -1,14 +1,13 @@
 from __future__ import annotations
 
-import json
 import platform
 from functools import cache, cached_property
 from typing import Any
 
 import psutil
-from plumbum import local
 from pydantic import Field
 
+from .. import shell
 from ..enums import Vendor
 from ..gpu import GPU
 from ..models.clock import Clock
@@ -17,11 +16,9 @@ from ..models.memory_usage import MemoryUsage
 from ..npu import NPU
 
 
-@cache
-def apple_system_profile() -> dict[str, Any]:
+def apple_system_profile() -> shell.SystemProfile:
     """Return cached macOS hardware and display profiler data."""
-    profiler = local["system_profiler"]
-    return json.loads(profiler["-json", "SPHardwareDataType", "SPDisplaysDataType"]())
+    return shell.system_profiler("SPHardwareDataType", "SPDisplaysDataType")
 
 
 class AppleGPU(GPU):
@@ -43,10 +40,7 @@ class AppleGPU(GPU):
         """Apple GPU records from `system_profiler`."""
         if platform.system() != "Darwin":
             return ()
-        try:
-            records = apple_system_profile().get("SPDisplaysDataType", [])
-        except (OSError, json.JSONDecodeError):
-            return ()
+        records = apple_system_profile().get("SPDisplaysDataType", [])
         return tuple(
             record for record in records if record.get("sppci_device_type") == "spdisplays_gpu"
         )

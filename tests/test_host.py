@@ -111,15 +111,7 @@ def test_cpu_falls_back_to_platform_processor(monkeypatch: pytest.MonkeyPatch) -
 def test_darwin_cpu_uses_sysctl(monkeypatch: pytest.MonkeyPatch) -> None:
     """On Darwin the CPU name comes from `sysctl machdep.cpu.brand_string`."""
     monkeypatch.setattr("mainboard.host.platform.system", lambda: "Darwin")
-
-    class FakeCmd:
-        def __getitem__(self, args: object) -> FakeCmd:
-            return self
-
-        def __call__(self) -> str:
-            return "Apple M4 Pro\n"
-
-    monkeypatch.setattr(host_mod, "local", {"sysctl": FakeCmd()})
+    monkeypatch.setattr(host_mod.shell, "sysctl", lambda name: "Apple M4 Pro")
     assert Host().cpu == "Apple M4 Pro"
     assert Host().cpu_vendor == Vendor.APPLE
 
@@ -139,17 +131,9 @@ def test_cpu_counts_and_frequency(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_darwin_sysctl_failure_falls_back_to_cpuinfo(monkeypatch: pytest.MonkeyPatch) -> None:
-    """A failing `sysctl` on Darwin falls through to cpuinfo/processor detection."""
+    """An empty `sysctl` on Darwin falls through to cpuinfo/processor detection."""
     monkeypatch.setattr("mainboard.host.platform.system", lambda: "Darwin")
-
-    class FailingCmd:
-        def __getitem__(self, args: object) -> FailingCmd:
-            return self
-
-        def __call__(self) -> str:
-            raise OSError("sysctl missing")
-
-    monkeypatch.setattr(host_mod, "local", {"sysctl": FailingCmd()})
+    monkeypatch.setattr(host_mod.shell, "sysctl", lambda name: "")
     host = make_host(monkeypatch, "")
     monkeypatch.setattr("mainboard.host.platform.processor", lambda: "fallback")
     assert host.cpu == "fallback"
@@ -166,13 +150,10 @@ def test_cpu_falls_back_when_arm_name_empty(monkeypatch: pytest.MonkeyPatch) -> 
 
 def test_cpuinfo_text_reads_proc_or_empty(monkeypatch: pytest.MonkeyPatch) -> None:
     """`cpuinfo_text` returns file contents, or an empty string when absent."""
-    monkeypatch.setattr("mainboard.host.Path.read_text", lambda self: "model name\t: X\n")
+    monkeypatch.setattr(host_mod.shell, "read", lambda path: "model name\t: X\n")
     assert "model name" in Host().cpuinfo_text
 
-    def boom(self: object) -> str:
-        raise OSError("no /proc on this OS")
-
-    monkeypatch.setattr("mainboard.host.Path.read_text", boom)
+    monkeypatch.setattr(host_mod.shell, "read", lambda path: "")
     assert Host().cpuinfo_text == ""
 
 
