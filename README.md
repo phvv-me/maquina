@@ -1,27 +1,17 @@
-<h1>
-  <a href="https://github.com/phvv-me/mainboard/">
-    <picture>
-      <source srcset="docs/assets/banner.svg" type="image/svg+xml">
-      <img src="docs/assets/banner.svg" alt="mainboard: every chip on your machine, mapped">
-    </picture>
-  </a>
-</h1>
+<div align="center">
 
-<h1 align="center">
+[![mainboard banner](https://raw.githubusercontent.com/phvv-me/mainboard/main/docs/assets/banner.png)](https://phvv.me/mainboard)
 
 [![CI](https://github.com/phvv-me/mainboard/actions/workflows/ci.yml/badge.svg)](https://github.com/phvv-me/mainboard/actions/workflows/ci.yml)
-[![PyPI](https://img.shields.io/pypi/v/mainboard.svg?color=2563EB)](https://pypi.org/project/mainboard/)
-[![Docs](https://img.shields.io/badge/docs-phvv.me%2Fmainboard-2563EB)](https://phvv.me/mainboard)
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Publish](https://github.com/phvv-me/mainboard/actions/workflows/publish.yml/badge.svg)](https://github.com/phvv-me/mainboard/actions/workflows/publish.yml)
+[![PyPI](https://img.shields.io/pypi/v/mainboard)](https://pypi.org/project/mainboard/)
+[![Python](https://img.shields.io/pypi/pyversions/mainboard)](https://pypi.org/project/mainboard/)
+[![Docs](https://img.shields.io/badge/docs-phvv.me%2Fmainboard-15803d)](https://phvv.me/mainboard)
+[![Coverage](https://img.shields.io/badge/coverage-100%25-brightgreen)](https://github.com/phvv-me/mainboard/actions/workflows/ci.yml)
 
-</h1>
+</div>
 
-# Mainboard: Hardware Topology for Python
-
-> [!WARNING]
-> **Mainboard is early (`0.0.x`).** The Python API is small on purpose, but provider details may still change.
-
-Mainboard tells Python code what compute units are on the current machine without assuming the world is only CUDA. It models CPUs, GPUs, and NPUs as `Unit`s, exposes snapshots with shared semantics, and keeps vendor-specific probing behind providers.
+> **Warning** mainboard is early (`0.0.x`). The Python API is small on purpose, but provider details may still change.
 
 ## Installation
 
@@ -29,54 +19,40 @@ Mainboard tells Python code what compute units are on the current machine withou
 pip install mainboard
 ```
 
-On Linux machines with NVIDIA GPUs, install the CUDA provider extra:
+Working in a [chefe](https://phvv.me/chefe) project? Add it to your manifest:
 
 ```sh
-pip install "mainboard[nvidia]"
+chefe add mainboard --pypi
 ```
 
-For a persistent CLI tool install:
+On Linux with NVIDIA GPUs, pull the CUDA provider extra: `pip install "mainboard[nvidia]"`.
 
-```sh
-uv tool install mainboard
-```
+## What it is
 
-## Terminal View
-
-```sh
-mainboard
-python -m mainboard
-mainboard --color=False
-```
-
-## Python API
+mainboard tells Python what compute is on the current machine, without assuming the world is only CUDA. It models CPUs, GPUs, and NPUs as `Unit`s, keeps vendor-specific probing behind providers (Apple and NVIDIA today), and gives you the whole board in one call.
 
 ```python
 from mainboard import Machine
 
-machine = Machine()
-machine.cpu.snapshot()
-machine.gpus[0].snapshot()
-machine.units
-machine.environment            # user, group(s), and job scheduler on the host
-machine.model_dump_json()      # one-call JSON probe of the whole machine
+print(Machine().model_dump_json(indent=2))   # cpu, memory, gpus, npus, and the host environment
 ```
 
-The API models CPU, GPU, and NPU hardware as `Unit`s with shared identity and snapshot semantics. Providers are isolated under `providers/`; Apple and NVIDIA are implemented, while AMD, Intel, and Qualcomm are import-safe stubs for future CI and hardware work. `Machine().model_dump_json()` probes the whole host in one call, including its execution environment (user, group, and job scheduler).
+## Usage
 
-## Platforms
+```python
+machine = Machine()
+machine.cpu.snapshot()             # CPU identity and capacity
+machine.gpus[0].snapshot()         # per-GPU telemetry
+machine.environment                # user, group(s), and job scheduler on the host
+machine.model_dump_json()          # one-call JSON probe of the whole machine
+```
 
-| platform | status |
-|---|---|
-| Apple Silicon macOS | CPU, Apple GPU, and Apple Neural Engine detection |
-| Linux + NVIDIA CUDA | CPU and NVIDIA GPU detection |
-| Other platforms | CPU fallback plus inert future-provider stubs |
-
-## Development
+The CLI renders a Rich schematic of the board:
 
 ```sh
-pixi run mainboard
-pixi run python -m pytest common/mainboard/tests -q
+mainboard
 ```
 
-Full documentation lives at **[phvv.me/mainboard](https://phvv.me/mainboard)**.
+## Lore
+
+A mainboard is where the silicon lives. This one just tells you what is plugged in.

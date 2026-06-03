@@ -3,7 +3,7 @@ site_description: CPU, GPU, and NPU hardware topology for Python.
 site_url: https://phvv.me/mainboard/
 repo_url: https://github.com/phvv-me/mainboard
 repo_name: phvv-me/mainboard
-copyright: MIT - Pedro Valois
+copyright: Apache-2.0 · Pedro Valois
 
 theme:
   name: material
