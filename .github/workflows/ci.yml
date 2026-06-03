@@ -8,14 +8,15 @@ on:
 jobs:
   test:
     # Each OS is a distinct real hardware setup the probe runs against:
-    #   ubuntu-latest -> x86_64 Linux (no accelerator)
-    #   macos-latest  -> Apple Silicon (real Apple GPU + NPU)
-    #   macos-13      -> x86_64 Intel mac
+    #   ubuntu-latest  -> x86_64 Linux (no accelerator)
+    #   macos-latest   -> Apple Silicon (real Apple GPU + NPU)
+    #   macos-13       -> x86_64 Intel mac
+    #   windows-latest -> x86_64 Windows (hermetic suite only; no native probe yet)
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, macos-13]
+        os: [ubuntu-latest, macos-latest, macos-13, windows-latest]
         python: ["3.13", "3.14"]
     steps:
       - uses: actions/checkout@v4
@@ -29,5 +30,6 @@ jobs:
       - run: uv run pyrefly check
       # gated unit/property suite with coverage
       - run: uv run pytest -m "not integration" --cov=mainboard
-      # real probe against this runner's actual hardware
+      # real probe against this runner's actual hardware (skipped on Windows: no native probe yet)
       - run: uv run pytest -m integration
+        if: matrix.os != 'windows-latest'
