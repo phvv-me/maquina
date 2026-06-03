@@ -122,7 +122,9 @@ def test_cpu_counts_and_frequency(monkeypatch: pytest.MonkeyPatch) -> None:
         "mainboard.host.psutil.cpu_count", lambda logical=True: 14 if logical else 10
     )
     monkeypatch.setattr(
-        "mainboard.host.psutil.cpu_freq", lambda: type("F", (), {"current": 3200.0})()
+        "mainboard.host.psutil.cpu_freq",
+        lambda: type("F", (), {"current": 3200.0})(),
+        raising=False,  # psutil omits cpu_freq on some macOS builds
     )
     host = Host()
     assert host.logical_cpus == 14
@@ -173,5 +175,5 @@ def test_cpu_frequency_returns_none_when_unsupported(monkeypatch: pytest.MonkeyP
     def boom() -> None:
         raise NotImplementedError
 
-    monkeypatch.setattr("mainboard.host.psutil.cpu_freq", boom)
+    monkeypatch.setattr("mainboard.host.psutil.cpu_freq", boom, raising=False)
     assert Host().cpu_freq_mhz is None
