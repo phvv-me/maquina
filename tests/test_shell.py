@@ -98,14 +98,6 @@ def test_system_profiler_tolerates_failure(
     sp_mod.system_profiler.cache_clear()
 
 
-def test_read_returns_contents_and_tolerates_missing(tmp_path: Path) -> None:
-    """`read` returns a present file's full text and ``""`` for a missing path."""
-    target = tmp_path / "cpuinfo"
-    target.write_text("model name\t: X\n")
-    assert shell.read(target) == "model name\t: X\n"
-    assert shell.read(tmp_path / "absent") == ""
-
-
 def test_read_dmi_strips_present_field_and_tolerates_missing(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:

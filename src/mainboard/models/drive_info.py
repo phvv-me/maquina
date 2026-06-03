@@ -1,9 +1,9 @@
 from __future__ import annotations
 
+from contextlib import suppress
 from functools import cached_property
 from pathlib import Path
 
-from .. import shell
 from ..enums import DiskKind
 from .base import FrozenModel
 from .partition_info import PartitionInfo
@@ -35,7 +35,7 @@ class DriveInfo(FrozenModel):
         """Drive technology — NVMe, SSD, HDD, or Unknown."""
         if self.name.startswith("nvme"):
             return DiskKind.NVME
-        rotational = shell.read(f"/sys/block/{self.name}/queue/rotational").strip()
+        rotational = self._read_sys(f"/sys/block/{self.name}/queue/rotational")
         if not rotational:
             return DiskKind.UNKNOWN
         return DiskKind.HDD if rotational == "1" else DiskKind.SSD
@@ -43,7 +43,7 @@ class DriveInfo(FrozenModel):
     @cached_property
     def size_bytes(self) -> int:
         """Total device capacity in bytes."""
-        size = shell.read(f"/sys/block/{self.name}/size").strip()
+        size = self._read_sys(f"/sys/block/{self.name}/size")
         return int(size) * 512 if size else 0
 
     @cached_property
@@ -67,6 +67,14 @@ class DriveInfo(FrozenModel):
 
     @staticmethod
     def _read_sys(path: str) -> str | None:
-        """Return stripped sysfs text, or None if absent or a placeholder value."""
-        value = shell.read(path).strip()
-        return value if value and value.lower() not in _SYS_PLACEHOLDER else None
+        """Return stripped sysfs text, or None if absent or a placeholder value.
+
+        Tolerates missing or unreadable pseudo-files so callers can probe
+        Linux-only `/sys/block/` entries without guarding their existence.
+
+        path: sysfs file to read, e.g. `/sys/block/nvme0n1/size`.
+        """
+        with suppress(OSError):
+            value = Path(path).read_text(encoding="utf-8").strip()
+            return value if value and value.lower() not in _SYS_PLACEHOLDER else None
+        return None

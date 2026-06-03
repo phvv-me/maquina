@@ -149,11 +149,14 @@ def test_cpu_falls_back_when_arm_name_empty(monkeypatch: pytest.MonkeyPatch) -> 
 
 
 def test_cpuinfo_text_reads_proc_or_empty(monkeypatch: pytest.MonkeyPatch) -> None:
-    """`cpuinfo_text` returns file contents, or an empty string when absent."""
-    monkeypatch.setattr(host_mod.shell, "read", lambda path: "model name\t: X\n")
+    """`cpuinfo_text` returns `/proc/cpuinfo` text, or ``""`` when it is absent."""
+    monkeypatch.setattr(host_mod.Path, "read_text", lambda self, **kw: "model name\t: X\n")
     assert "model name" in Host().cpuinfo_text
 
-    monkeypatch.setattr(host_mod.shell, "read", lambda path: "")
+    def boom(self: host_mod.Path, **kw: object) -> str:
+        raise FileNotFoundError(self)
+
+    monkeypatch.setattr(host_mod.Path, "read_text", boom)
     assert Host().cpuinfo_text == ""
 
 

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from .. import shell
 from .base import FrozenModel
 from .drive_info import _SKIP_PREFIXES, DriveInfo
 
@@ -21,7 +20,7 @@ class HostDisk(FrozenModel):
             DriveInfo(name=dev_dir.name)
             for dev_dir in sorted(Path("/sys/block").iterdir())
             if not any(dev_dir.name.startswith(pfx) for pfx in _SKIP_PREFIXES)
-            and (size := shell.read(f"/sys/block/{dev_dir.name}/size").strip())
+            and (size := DriveInfo._read_sys(f"/sys/block/{dev_dir.name}/size"))
             and int(size) * 512 > 0
         )
 

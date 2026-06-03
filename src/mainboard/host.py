@@ -3,7 +3,9 @@ from __future__ import annotations
 import platform
 import re
 from collections import Counter
+from contextlib import suppress
 from functools import cached_property
+from pathlib import Path
 
 import psutil
 
@@ -70,7 +72,9 @@ class Host:
     @cached_property
     def cpuinfo_text(self) -> str:
         """Raw Linux `/proc/cpuinfo`, or an empty string when unavailable."""
-        return shell.read("/proc/cpuinfo")
+        with suppress(OSError):
+            return Path("/proc/cpuinfo").read_text(encoding="utf-8")
+        return ""
 
     @cached_property
     def cpuinfo_records(self) -> tuple[dict[str, str], ...]:
