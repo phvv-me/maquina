@@ -171,6 +171,7 @@ def test_cpu_cell_shows_clock_when_high_enough(monkeypatch: pytest.MonkeyPatch) 
     assert all(label != "clock" for label, _ in view.cpu_rows())
 
 
+@pytest.mark.usefixtures("apple_host")
 def test_apple_gpu_rows_omit_missing_cores_and_metal() -> None:
     """An Apple GPU with no core count or Metal string omits those rows."""
 
