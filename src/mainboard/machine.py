@@ -3,6 +3,7 @@ from __future__ import annotations
 import platform
 from functools import cache, cached_property
 
+from .cpu import CPU
 from .gpu import GPU
 from .host import Host
 from .models.board import Board
@@ -12,7 +13,7 @@ from .models.memory_usage import MemoryUsage
 from .models.system_compilers import SystemCompilers
 from .npu import NPU
 from .providers import NvidiaGPU
-from .unit import CPU, Unit
+from .unit import Unit
 
 
 class Machine:

@@ -12,8 +12,10 @@ from mainboard import (
     QualcommNPU,
 )
 from mainboard.enums import CudaPythonVariant, UnitKind, Vendor
-from mainboard.providers import apple, nvidia
 from mainboard.providers.apple import AppleGPU, AppleNPU
+from mainboard.providers.apple import gpu as apple_gpu
+from mainboard.providers.apple import profile as apple_profile
+from mainboard.providers.nvidia import apis as nvidia_apis_module
 
 from .conftest import FakeNvidiaApis
 
@@ -94,8 +96,8 @@ def test_apple_core_count_tolerates_non_numeric(
 
 def test_apple_unavailable_off_apple_silicon(monkeypatch: pytest.MonkeyPatch) -> None:
     """On non-Darwin or non-arm64 hosts the Apple providers report nothing."""
-    monkeypatch.setattr(apple.platform, "system", lambda: "Linux")
-    apple.AppleGPU.gpu_records.cache_clear()
+    monkeypatch.setattr(apple_gpu.platform, "system", lambda: "Linux")
+    AppleGPU.gpu_records.cache_clear()
     assert AppleGPU.is_available() is False
     assert AppleGPU.gpu_records() == ()
     assert AppleNPU.is_available() is False
@@ -105,16 +107,17 @@ def test_apple_unavailable_off_apple_silicon(monkeypatch: pytest.MonkeyPatch) ->
 def test_apple_system_profile_reads_shell(monkeypatch: pytest.MonkeyPatch) -> None:
     """`apple_system_profile` returns the shell-parsed profiler payload."""
     profile = {"SPHardwareDataType": [{"chip_type": "Apple M4 Pro"}]}
-    monkeypatch.setattr(apple.shell, "system_profiler", lambda *types: profile)
-    assert apple.apple_system_profile()["SPHardwareDataType"][0]["chip_type"] == "Apple M4 Pro"
+    monkeypatch.setattr(apple_profile.shell, "system_profiler", lambda *types: profile)
+    payload = apple_profile.apple_system_profile()
+    assert payload["SPHardwareDataType"][0]["chip_type"] == "Apple M4 Pro"
 
 
 def test_apple_gpu_records_tolerate_profiler_failure(monkeypatch: pytest.MonkeyPatch) -> None:
     """An empty profiler payload yields no Apple GPU records instead of raising."""
-    monkeypatch.setattr(apple.platform, "system", lambda: "Darwin")
-    apple.AppleGPU.gpu_records.cache_clear()
-    monkeypatch.setattr(apple, "apple_system_profile", lambda: {})
-    assert apple.AppleGPU.gpu_records() == ()
+    monkeypatch.setattr(apple_gpu.platform, "system", lambda: "Darwin")
+    AppleGPU.gpu_records.cache_clear()
+    monkeypatch.setattr(apple_profile, "apple_system_profile", lambda: {})
+    assert AppleGPU.gpu_records() == ()
 
 
 def test_nvidia_detects_and_describes_devices(nvidia_host: object) -> None:
@@ -255,8 +258,8 @@ def test_nvidia_apis_imports_real_module_surface(monkeypatch: pytest.MonkeyPatch
         "cuda.bindings._nvml": fake_nvml,
         "cuda.core": type("Core", (), {"Device": fake_device}),
     }
-    monkeypatch.setattr(nvidia, "import_module", lambda name: modules[name])
-    apis = nvidia.NvidiaApis()
+    monkeypatch.setattr(nvidia_apis_module, "import_module", lambda name: modules[name])
+    apis = nvidia_apis_module.NvidiaApis()
     assert apis.cuda_device_type is fake_device
     assert apis.nvml is fake_nvml
 
@@ -275,8 +278,8 @@ def test_nvidia_apis_falls_back_to_public_nvml(monkeypatch: pytest.MonkeyPatch) 
             "cuda.core": type("Core", (), {"Device": FakeNvidiaApis().cuda_device_type}),
         }[name]
 
-    monkeypatch.setattr(nvidia, "import_module", loader)
-    apis = nvidia.NvidiaApis()
+    monkeypatch.setattr(nvidia_apis_module, "import_module", loader)
+    apis = nvidia_apis_module.NvidiaApis()
     assert apis.nvml is fake_nvml
 
 
@@ -288,19 +291,19 @@ def test_nvidia_apis_cache_returns_singleton(monkeypatch: pytest.MonkeyPatch) ->
         def __init__(self) -> None:
             built.append(1)
 
-    nvidia.nvidia_apis.cache_clear()
-    monkeypatch.setattr(nvidia, "NvidiaApis", Marker)
-    first = nvidia.nvidia_apis()
-    second = nvidia.nvidia_apis()
+    nvidia_apis_module.nvidia_apis.cache_clear()
+    monkeypatch.setattr(nvidia_apis_module, "NvidiaApis", Marker)
+    first = nvidia_apis_module.nvidia_apis()
+    second = nvidia_apis_module.nvidia_apis()
     assert first is second
     assert built == [1]
-    nvidia.nvidia_apis.cache_clear()
+    nvidia_apis_module.nvidia_apis.cache_clear()
 
 
 def test_nvidia_unavailable_when_no_devices(monkeypatch: pytest.MonkeyPatch) -> None:
     """A zero device count makes the provider report unavailable and empty."""
-    nvidia.nvidia_apis.cache_clear()
-    monkeypatch.setattr(nvidia, "nvidia_apis", lambda: FakeNvidiaApis(device_count=0))
+    nvidia_apis_module.nvidia_apis.cache_clear()
+    monkeypatch.setattr(nvidia_apis_module, "nvidia_apis", lambda: FakeNvidiaApis(device_count=0))
     assert NvidiaGPU.is_available() is False
     assert NvidiaGPU.all() == ()
 
@@ -311,6 +314,6 @@ def test_nvidia_unavailable_when_imports_fail(monkeypatch: pytest.MonkeyPatch) -
     def boom() -> object:
         raise ModuleNotFoundError("no cuda")
 
-    nvidia.nvidia_apis.cache_clear()
-    monkeypatch.setattr(nvidia, "nvidia_apis", boom)
+    nvidia_apis_module.nvidia_apis.cache_clear()
+    monkeypatch.setattr(nvidia_apis_module, "nvidia_apis", boom)
     assert NvidiaGPU.is_available() is False

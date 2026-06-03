@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from .cpu import CPU
 from .enums import (
     CmakeBuildType,
     CompilerKind,
@@ -53,7 +54,7 @@ from .providers import (
     QualcommGPU,
     QualcommNPU,
 )
-from .unit import CPU, Unit
+from .unit import Unit
 from .visual import MachineView
 
 NAME = __name__  # the package folder is the single source of the name

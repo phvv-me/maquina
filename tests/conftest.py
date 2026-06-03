@@ -7,7 +7,11 @@ import pytest
 from hypothesis import strategies as st
 
 from mainboard import shell
-from mainboard.providers import apple, nvidia
+from mainboard.providers import apple
+from mainboard.providers.apple import gpu as apple_gpu
+from mainboard.providers.apple import npu as apple_npu
+from mainboard.providers.apple import profile as apple_profile
+from mainboard.providers.nvidia import apis as nvidia_apis_module
 
 APPLE_PROFILE: dict[str, Any] = {
     "SPHardwareDataType": [
@@ -38,26 +42,33 @@ def reset_apple_caches() -> None:
     apple.AppleGPU.gpu_records.cache_clear()
 
 
+def reset_nvidia_cache() -> None:
+    """Drop the cached CUDA/NVML import stack."""
+    nvidia_apis_module.nvidia_apis.cache_clear()
+
+
 @pytest.fixture(autouse=True)
 def reset_global_caches() -> Iterator[None]:
     """Keep tests hermetic by clearing every module-level cache around each test."""
     from mainboard.machine import Machine
 
     Machine.__new__.cache_clear()
-    nvidia.nvidia_apis.cache_clear()
+    reset_nvidia_cache()
     reset_apple_caches()
     yield
     Machine.__new__.cache_clear()
-    nvidia.nvidia_apis.cache_clear()
+    reset_nvidia_cache()
 
 
 @pytest.fixture
 def apple_host(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
     """Pretend the host is an Apple Silicon Mac with the canonical profiler payload."""
     reset_apple_caches()
-    monkeypatch.setattr(apple.platform, "system", lambda: "Darwin")
-    monkeypatch.setattr(apple.platform, "machine", lambda: "arm64")
-    monkeypatch.setattr(apple, "apple_system_profile", lambda: APPLE_PROFILE)
+    monkeypatch.setattr(apple_gpu.platform, "system", lambda: "Darwin")
+    monkeypatch.setattr(apple_gpu.platform, "machine", lambda: "arm64")
+    monkeypatch.setattr(apple_npu.platform, "system", lambda: "Darwin")
+    monkeypatch.setattr(apple_npu.platform, "machine", lambda: "arm64")
+    monkeypatch.setattr(apple_profile, "apple_system_profile", lambda: APPLE_PROFILE)
     apple.AppleGPU.gpu_records.cache_clear()
     yield
 
@@ -73,7 +84,7 @@ class FakeVirtualMemory:
 @pytest.fixture
 def fake_psutil_memory(monkeypatch: pytest.MonkeyPatch) -> None:
     """Pin psutil's virtual-memory reading so unified-memory paths are deterministic."""
-    monkeypatch.setattr(apple.psutil, "virtual_memory", lambda: FakeVirtualMemory())
+    monkeypatch.setattr(apple_gpu.psutil, "virtual_memory", lambda: FakeVirtualMemory())
 
 
 class FakeError(Exception):
@@ -231,8 +242,8 @@ class FakeNvidiaApis:
 def nvidia_host(monkeypatch: pytest.MonkeyPatch) -> Iterator[FakeNvidiaApis]:
     """Replace the cached CUDA/NVML stack with deterministic fakes."""
     apis = FakeNvidiaApis()
-    nvidia.nvidia_apis.cache_clear()
-    monkeypatch.setattr(nvidia, "nvidia_apis", lambda: apis)
+    nvidia_apis_module.nvidia_apis.cache_clear()
+    monkeypatch.setattr(nvidia_apis_module, "nvidia_apis", lambda: apis)
     yield apis
 
 

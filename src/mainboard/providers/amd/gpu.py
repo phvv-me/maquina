@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from pydantic import Field
 
-from ..enums import Vendor
-from ..gpu import GPU
+from ...enums import Vendor
+from ...gpu import GPU
 
 
 class AMDGPU(GPU):

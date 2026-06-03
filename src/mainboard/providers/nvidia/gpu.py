@@ -2,64 +2,28 @@ from __future__ import annotations
 
 import logging
 from contextlib import suppress
-from functools import cache, cached_property
-from importlib import import_module, util
+from functools import cached_property
+from importlib import util
 from typing import Any
 
 from pydantic import Field
 
-from ..enums import CudaPythonVariant, Vendor
-from ..gpu import GPU
-from ..models.clock_info import ClockInfo
-from ..models.compute_capability import ComputeCapability
-from ..models.cuda_python_info import CudaPythonInfo
-from ..models.energy_reading import EnergyReading
-from ..models.mem_info import MemInfo
-from ..models.memory_usage import MemoryUsage
-from ..models.pcie_info import PcieInfo
-from ..models.process_info import ProcessInfo
-from ..models.thermal_state import ThermalState
-from ..models.utilization import Utilization
+from ...enums import CudaPythonVariant, Vendor
+from ...gpu import GPU
+from ...models.clock_info import ClockInfo
+from ...models.compute_capability import ComputeCapability
+from ...models.cuda_python_info import CudaPythonInfo
+from ...models.energy_reading import EnergyReading
+from ...models.mem_info import MemInfo
+from ...models.memory_usage import MemoryUsage
+from ...models.pcie_info import PcieInfo
+from ...models.process_info import ProcessInfo
+from ...models.thermal_state import ThermalState
+from ...models.utilization import Utilization
+from . import apis
+from .apis import NvidiaApis, text
 
 logger = logging.getLogger(__name__)
-
-
-def text(value: Any) -> str:
-    """Convert CUDA/NVML byte strings and scalars to text."""
-    if isinstance(value, bytes):
-        return value.decode(errors="replace")
-    return str(value)
-
-
-class NvidiaApis:
-    """Lazy CUDA/NVML imports for the NVIDIA provider."""
-
-    def __init__(self) -> None:
-        self.runtime: Any = import_module("cuda.bindings.runtime")
-        self.system: Any = import_module("cuda.core.system")
-        try:
-            self.nvml: Any = import_module("cuda.bindings._nvml")
-        except ModuleNotFoundError:
-            self.nvml = import_module("cuda.bindings.nvml")
-        cuda_core: Any = import_module("cuda.core")
-        self.cuda_device_type: Any = cuda_core.Device
-        self.nvml_errors: tuple[type[Exception], ...] = tuple(
-            error
-            for name in (
-                "NotSupportedError",
-                "NoPermissionError",
-                "UnknownError",
-                "GpuIsLostError",
-            )
-            if isinstance(error := getattr(self.nvml, name, None), type)
-            and issubclass(error, Exception)
-        )
-
-
-@cache
-def nvidia_apis() -> NvidiaApis:
-    """Return cached CUDA/NVML imports for NVIDIA devices."""
-    return NvidiaApis()
 
 
 class NvidiaGPU(GPU):
@@ -72,7 +36,7 @@ class NvidiaGPU(GPU):
     def is_available(cls) -> bool:
         """Whether CUDA reports at least one NVIDIA device."""
         try:
-            api = nvidia_apis()
+            api = apis.nvidia_apis()
             err, count = api.runtime.cudaGetDeviceCount()
             return err == api.runtime.cudaError_t.cudaSuccess and count > 0
         except (ModuleNotFoundError, ImportError, OSError, RuntimeError):
@@ -83,14 +47,14 @@ class NvidiaGPU(GPU):
         """Return all CUDA-visible devices ordered by visible index."""
         if not cls.is_available():
             return ()
-        api = nvidia_apis()
+        api = apis.nvidia_apis()
         _, count = api.runtime.cudaGetDeviceCount()
         return tuple(cls(index=i) for i in range(count))
 
     @cached_property
     def apis(self) -> NvidiaApis:
         """CUDA/NVML module handles."""
-        return nvidia_apis()
+        return apis.nvidia_apis()
 
     @cached_property
     def cuda_device(self) -> Any:

@@ -7,18 +7,12 @@ from typing import Any
 import psutil
 from pydantic import Field
 
-from .. import shell
-from ..enums import Vendor
-from ..gpu import GPU
-from ..models.clock import Clock
-from ..models.mem_info import MemInfo
-from ..models.memory_usage import MemoryUsage
-from ..npu import NPU
-
-
-def apple_system_profile() -> shell.SystemProfile:
-    """Return cached macOS hardware and display profiler data."""
-    return shell.system_profiler("SPHardwareDataType", "SPDisplaysDataType")
+from ...enums import Vendor
+from ...gpu import GPU
+from ...models.clock import Clock
+from ...models.mem_info import MemInfo
+from ...models.memory_usage import MemoryUsage
+from . import profile
 
 
 class AppleGPU(GPU):
@@ -40,7 +34,7 @@ class AppleGPU(GPU):
         """Apple GPU records from `system_profiler`."""
         if platform.system() != "Darwin":
             return ()
-        records = apple_system_profile().get("SPDisplaysDataType", [])
+        records = profile.apple_system_profile().get("SPDisplaysDataType", [])
         return tuple(
             record for record in records if record.get("sppci_device_type") == "spdisplays_gpu"
         )
@@ -63,13 +57,13 @@ class AppleGPU(GPU):
     @cached_property
     def uuid(self) -> str:
         """Stable system UUID used as the integrated GPU identifier."""
-        hardware = apple_system_profile().get("SPHardwareDataType", [{}])[0]
+        hardware = profile.apple_system_profile().get("SPHardwareDataType", [{}])[0]
         return str(hardware.get("platform_UUID") or "")
 
     @cached_property
     def architecture(self) -> str:
         """Apple SoC family backing this GPU."""
-        hardware = apple_system_profile().get("SPHardwareDataType", [{}])[0]
+        hardware = profile.apple_system_profile().get("SPHardwareDataType", [{}])[0]
         return str(hardware.get("chip_type") or self.name)
 
     @cached_property
@@ -119,58 +113,3 @@ class AppleGPU(GPU):
             Clock(domain="gpu_compute", source="system_profiler", supported=False),
             Clock(domain="memory", source="system_profiler", supported=False),
         )
-
-
-class AppleNPU(NPU):
-    """Apple Neural Engine backed by unified memory."""
-
-    vendor: Vendor = Field(default=Vendor.APPLE)
-    backend: str = "coreml"
-
-    @classmethod
-    def is_available(cls) -> bool:
-        """Whether this host is an Apple Silicon machine."""
-        return platform.system() == "Darwin" and platform.machine() == "arm64"
-
-    @classmethod
-    def all(cls) -> tuple[AppleNPU, ...]:
-        """Return the local Apple Neural Engine when present."""
-        return (cls(),) if cls.is_available() else ()
-
-    @cached_property
-    def name(self) -> str:
-        """Apple Neural Engine model name."""
-        hardware = apple_system_profile().get("SPHardwareDataType", [{}])[0]
-        chip = hardware.get("chip_type") or "Apple Silicon"
-        return f"{chip} Neural Engine"
-
-    @cached_property
-    def architecture(self) -> str:
-        """Apple SoC family backing the Neural Engine."""
-        hardware = apple_system_profile().get("SPHardwareDataType", [{}])[0]
-        return str(hardware.get("chip_type") or "Apple Silicon")
-
-    @cached_property
-    def total_memory_bytes(self) -> int:
-        """Unified system memory visible to the Neural Engine."""
-        return psutil.virtual_memory().total
-
-    @property
-    def memory_readings(self) -> tuple[MemoryUsage, ...]:
-        """Unified memory visible to CPU, GPU, and Neural Engine."""
-        vm = psutil.virtual_memory()
-        return (
-            MemoryUsage(
-                scope="unified",
-                total_bytes=vm.total,
-                used_bytes=vm.used,
-                free_bytes=vm.available,
-                unified=True,
-                source="psutil",
-            ),
-        )
-
-    @property
-    def clock_readings(self) -> tuple[Clock, ...]:
-        """Apple Neural Engine clocks are not exposed through public APIs."""
-        return (Clock(domain="npu", source="coreml", supported=False),)

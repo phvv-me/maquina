@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from functools import cached_property
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING, ClassVar, cast
 
 from pydantic import Field
 
@@ -15,16 +15,19 @@ from .models.memory_usage import MemoryUsage
 from .models.pcie_info import PcieInfo
 from .models.thermal_state import ThermalState
 from .models.utilization import Utilization
+from .registry import Registry
 from .unit import Unit
 
 if TYPE_CHECKING:
     from .models.process_info import ProcessInfo
 
 
-class GPU(Unit):
-    """GPU with telemetry and legacy profiling sensor accessors."""
+class GPU(Unit, Registry):
+    """GPU with telemetry and legacy profiling sensor accessors.
 
-    providers: ClassVar[tuple[type[GPU], ...]] = ()
+    Registry root: concrete vendor providers self-register on import, and
+    `all` fans out over them, concatenating each provider's own probe.
+    """
 
     index: int = 0
     kind: ClassVar[UnitKind] = UnitKind.GPU
@@ -32,14 +35,10 @@ class GPU(Unit):
     backend: str = "none"
 
     @classmethod
-    def register_providers(cls, *providers: type[GPU]) -> None:
-        """Register concrete providers used by `GPU.all`."""
-        cls.providers = providers
-
-    @classmethod
     def all(cls) -> tuple[GPU, ...]:
-        """Return GPUs visible to supported providers."""
-        return tuple(gpu for provider in cls.providers for gpu in provider.all())
+        """Return GPUs visible across every registered provider."""
+        providers = (cast("type[GPU]", p) for p in cls.registry() if p is not GPU)
+        return tuple(gpu for provider in providers for gpu in provider.all())
 
     @cached_property
     def name(self) -> str:

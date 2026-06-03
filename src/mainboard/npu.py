@@ -1,23 +1,23 @@
 from __future__ import annotations
 
-from typing import ClassVar
+from typing import ClassVar, cast
 
 from .enums import UnitKind
+from .registry import Registry
 from .unit import Unit
 
 
-class NPU(Unit):
-    """Neural processing unit."""
+class NPU(Unit, Registry):
+    """Neural processing unit.
 
-    providers: ClassVar[tuple[type[NPU], ...]] = ()
+    Registry root: concrete vendor providers self-register on import, and
+    `all` fans out over them, concatenating each provider's own probe.
+    """
+
     kind: ClassVar[UnitKind] = UnitKind.NPU
 
     @classmethod
-    def register_providers(cls, *providers: type[NPU]) -> None:
-        """Register concrete providers used by `NPU.all`."""
-        cls.providers = providers
-
-    @classmethod
     def all(cls) -> tuple[NPU, ...]:
-        """Return NPUs visible to supported providers."""
-        return tuple(npu for provider in cls.providers for npu in provider.all())
+        """Return NPUs visible across every registered provider."""
+        providers = (cast("type[NPU]", p) for p in cls.registry() if p is not NPU)
+        return tuple(npu for provider in providers for npu in provider.all())

@@ -6,7 +6,7 @@ from typing import Any
 
 from plumbum import local
 
-SystemProfile = dict[str, list[dict[str, Any]]]
+type SystemProfile = dict[str, list[dict[str, Any]]]
 
 
 @cache
