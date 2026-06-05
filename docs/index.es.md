@@ -6,7 +6,7 @@
 
 **Topología de hardware e instantáneas de máquinas para Python.**
 
-mainboard responde una pregunta sencilla: ¿de qué está hecha esta máquina y qué puede saber Python de ella de forma segura? Expone CPU, GPU y NPU como `Unit`s tipados con semántica de instantánea compartida, y sondea el host hacia una única `MachineSnapshot` serializable que cubre cpu, memoria, gpus, npus, entorno y placa, sin obligar a cada máquina a pasar por un modelo exclusivo de CUDA.
+mainboard responde una pregunta sencilla: ¿de qué está hecha esta máquina y qué puede saber Python de ella de forma segura? Expone CPU, GPU y NPU como `Unit`s tipados con semántica de instantánea compartida, y sondea el host hacia una única `MachineSnapshot` serializable que cubre cpu, memoria, gpus, npus, entorno, placa y toolchain, sin obligar a cada máquina a pasar por un modelo exclusivo de CUDA.
 
 ## Inicio rápido
 
@@ -54,7 +54,8 @@ print(machine.model_dump_json(indent=2))
 | Aislamiento de proveedores | Los detalles de Apple y NVIDIA quedan detrás de clases de proveedor |
 | Importaciones seguras | Los futuros proveedores AMD, Intel y Qualcomm son stubs seguros para importar |
 | Vista de terminal | `mainboard` renderiza un esquema Rich de la memoria y las unidades de cómputo |
-| Instantánea en una llamada | `Machine().model_dump_json()` devuelve cpu, memoria, gpus, npus, entorno (usuario, grupo, planificador) y placa (placa madre, BIOS) |
+| Descubrimiento de toolchain | Un registro de sondeos ampliable informa los compiladores C/C++/CUDA y los sistemas de compilación en el PATH, con sus versiones |
+| Instantánea en una llamada | `Machine().model_dump_json()` devuelve cpu, memoria, gpus, npus, entorno (usuario, grupo, planificador), placa (placa madre, BIOS) y toolchain (compiladores, sistemas de compilación) |
 
 ## Plataformas
 
@@ -67,4 +68,4 @@ print(machine.model_dump_json(indent=2))
 !!! warning "mainboard es temprano (`0.0.x`)"
     La API pública es intencionalmente pequeña, pero los detalles de telemetría de los proveedores aún pueden cambiar.
 
-A continuación, lee la guía sobre [unidades](units.md) y la [sonda e instantánea](probe.md), o salta a la referencia de [entorno](environment.md), [placa](board.md) y [proveedores](providers.md).
+A continuación, lee la guía sobre [unidades](units.md) y la [sonda e instantánea](probe.md), o salta a la referencia de [entorno](environment.md), [toolchain](toolchain.md), [placa](board.md) y [proveedores](providers.md).

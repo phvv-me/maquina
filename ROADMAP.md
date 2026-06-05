@@ -66,5 +66,5 @@ Ideas worth doing once the milestones above land.
 - [ ] More accelerators — Google TPU, Tenstorrent, Groq, and FPGAs.
 - [ ] Remote probing — describe a machine over SSH (delegating to a dispatcher's machine clients).
 - [ ] Topology export — a Graphviz/Mermaid diagram of the board.
-- [ ] Exporter mode — Prometheus metrics for fleet monitoring.
+- [ ] Exporter mode — Prometheus metrics for multi-host monitoring.
 - [ ] Container awareness — what a process can actually see (cgroup/quota limits) versus the host.

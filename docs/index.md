@@ -6,7 +6,7 @@
 
 **Hardware topology and machine snapshots for Python.**
 
-mainboard answers a simple question: what is this machine made of, and what can Python safely know about it? It exposes CPUs, GPUs, and NPUs as typed `Unit`s with shared snapshot semantics, and probes the host into one serializable `MachineSnapshot` covering cpu, memory, gpus, npus, environment, and board, without forcing every machine through a CUDA-only model.
+mainboard answers a simple question: what is this machine made of, and what can Python safely know about it? It exposes CPUs, GPUs, and NPUs as typed `Unit`s with shared snapshot semantics, and probes the host into one serializable `MachineSnapshot` covering cpu, memory, gpus, npus, environment, board, and toolchain, without forcing every machine through a CUDA-only model.
 
 ## Quickstart
 
@@ -54,7 +54,8 @@ print(machine.model_dump_json(indent=2))
 | Provider isolation | Apple and NVIDIA details stay behind provider classes |
 | Safe imports | Future AMD, Intel, and Qualcomm providers are import-safe stubs |
 | Terminal view | `mainboard` renders a Rich schematic of memory and compute units |
-| One-call snapshot | `Machine().model_dump_json()` returns cpu, memory, gpus, npus, environment (user, group, scheduler), and board (motherboard, BIOS) |
+| Toolchain discovery | An expandable probe registry reports C/C++/CUDA compilers and build systems on PATH, with versions |
+| One-call snapshot | `Machine().model_dump_json()` returns cpu, memory, gpus, npus, environment (user, group, scheduler), board (motherboard, BIOS), and toolchain (compilers, build systems) |
 
 ## Platforms
 

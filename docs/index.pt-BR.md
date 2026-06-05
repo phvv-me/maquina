@@ -6,7 +6,7 @@
 
 **Topologia de hardware e snapshots de máquina para Python.**
 
-O mainboard responde a uma pergunta simples: do que esta máquina é feita e o que o Python pode saber sobre ela com segurança? Ele expõe CPUs, GPUs e NPUs como `Unit`s tipados com semântica de snapshot compartilhada, e sonda o host gerando um único `MachineSnapshot` serializável que cobre cpu, memória, gpus, npus, environment e board, sem forçar toda máquina a passar por um modelo exclusivo de CUDA.
+O mainboard responde a uma pergunta simples: do que esta máquina é feita e o que o Python pode saber sobre ela com segurança? Ele expõe CPUs, GPUs e NPUs como `Unit`s tipados com semântica de snapshot compartilhada, e sonda o host gerando um único `MachineSnapshot` serializável que cobre cpu, memória, gpus, npus, environment, board e toolchain, sem forçar toda máquina a passar por um modelo exclusivo de CUDA.
 
 ## Início rápido
 
@@ -54,7 +54,8 @@ print(machine.model_dump_json(indent=2))
 | Isolamento de provider | Detalhes de Apple e NVIDIA ficam por trás de classes de provider |
 | Imports seguros | Os futuros providers AMD, Intel e Qualcomm são stubs seguros para importação |
 | Visão no terminal | `mainboard` renderiza um esquema Rich da memória e das units de computação |
-| Snapshot em uma chamada | `Machine().model_dump_json()` retorna cpu, memória, gpus, npus, environment (user, group, scheduler) e board (placa-mãe, BIOS) |
+| Descoberta de toolchain | Um registro de sondas expansível reporta os compiladores C/C++/CUDA e os build systems no PATH, com versões |
+| Snapshot em uma chamada | `Machine().model_dump_json()` retorna cpu, memória, gpus, npus, environment (user, group, scheduler), board (placa-mãe, BIOS) e toolchain (compiladores, build systems) |
 
 ## Plataformas
 
@@ -67,4 +68,4 @@ print(machine.model_dump_json(indent=2))
 !!! warning "O mainboard é recente (`0.0.x`)"
     A API pública é propositalmente pequena, mas detalhes de telemetria dos providers ainda podem mudar.
 
-A seguir, leia o guia sobre [units](units.md) e o [probe e snapshot](probe.md), ou pule direto para a referência de [environment](environment.md), [board](board.md) e [providers](providers.md).
+A seguir, leia o guia sobre [units](units.md) e o [probe e snapshot](probe.md), ou pule direto para a referência de [environment](environment.md), [toolchain](toolchain.md), [board](board.md) e [providers](providers.md).

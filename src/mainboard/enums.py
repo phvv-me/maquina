@@ -76,3 +76,12 @@ class Scheduler(StrEnum):
     PBS = "pbs"
     PUEUE = "pueue"
     NONE = "none"
+
+
+class ToolCategory(StrEnum):
+    """Grouping for a discovered build tool in the host toolchain."""
+
+    C_COMPILER = "c-compiler"
+    CXX_COMPILER = "cxx-compiler"
+    CUDA_COMPILER = "cuda-compiler"
+    BUILD_SYSTEM = "build-system"

@@ -8,6 +8,7 @@ from .board import Board
 from .environment import Environment
 from .gpu_snapshot import GPUSnapshot
 from .memory_usage import MemoryUsage
+from .toolchain import Toolchain
 from .unit_snapshot import UnitSnapshot
 
 
@@ -43,6 +44,7 @@ class MachineSnapshot(FrozenModel):
     npus: detected neural processing units, empty when none are present.
     environment: the user, group(s), and job scheduler available on the host.
     board: the host's motherboard and firmware identity.
+    toolchain: C/C++/CUDA compilers and build systems found on the host PATH.
     """
 
     timestamp_ns: int = Field(default_factory=time.perf_counter_ns)
@@ -51,6 +53,7 @@ class MachineSnapshot(FrozenModel):
     memory: MemoryUsage = MemoryUsage(scope="system")
     environment: Environment = Environment()
     board: Board = Board()
+    toolchain: Toolchain = Toolchain()
     gpus: tuple[GPUSnapshot, ...] = ()
     npus: tuple[UnitSnapshot, ...] = ()
 

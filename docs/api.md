@@ -31,6 +31,16 @@ This page is generated from the source docstrings. For task-oriented guides, see
 
 ::: mainboard.Board
 
+## Toolchain
+
+::: mainboard.Toolchain
+
+::: mainboard.DetectedTool
+
+::: mainboard.ToolProbe
+
+::: mainboard.ToolCategory
+
 ## Providers
 
 ::: mainboard.AppleGPU

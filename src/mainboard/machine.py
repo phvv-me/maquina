@@ -11,6 +11,7 @@ from .models.environment import Environment
 from .models.machine_snapshot import CpuSnapshot, MachineSnapshot
 from .models.memory_usage import MemoryUsage
 from .models.system_compilers import SystemCompilers
+from .models.toolchain import Toolchain
 from .npu import NPU
 from .providers import NvidiaGPU
 from .unit import Unit
@@ -60,6 +61,11 @@ class Machine:
     def board(self) -> Board:
         """The host's motherboard and firmware identity."""
         return Board.probe()
+
+    @cached_property
+    def toolchain(self) -> Toolchain:
+        """C/C++/CUDA compilers and build systems found on the host PATH."""
+        return Toolchain.probe()
 
     @cached_property
     def units(self) -> tuple[Unit, ...]:
@@ -116,6 +122,7 @@ class Machine:
             ),
             environment=self.environment,
             board=self.board,
+            toolchain=self.toolchain,
             gpus=tuple(gpu.snapshot() for gpu in self.gpus),
             npus=tuple(npu.snapshot() for npu in self.npus),
         )
