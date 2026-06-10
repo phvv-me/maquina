@@ -1,9 +1,6 @@
-from __future__ import annotations
-
 import platform
 from functools import cached_property
 
-import psutil
 from pydantic import Field
 
 from ...enums import Vendor
@@ -32,28 +29,17 @@ class AppleNPU(NPU):
     @cached_property
     def name(self) -> str:
         """Apple Neural Engine model name."""
-        hardware = profile.apple_system_profile().get("SPHardwareDataType", [{}])[0]
-        chip = hardware.get("chip_type") or "Apple Silicon"
-        return f"{chip} Neural Engine"
+        return f"{self.architecture} Neural Engine"
 
     @cached_property
     def architecture(self) -> str:
         """Apple SoC family backing the Neural Engine."""
-        hardware = profile.apple_system_profile().get("SPHardwareDataType", [{}])[0]
-        return str(hardware.get("chip_type") or "Apple Silicon")
+        return str(profile.hardware_record().get("chip_type") or "Apple Silicon")
 
     @property
     def memory(self) -> Memory:
         """Unified memory visible to CPU, GPU, and Neural Engine."""
-        vm = psutil.virtual_memory()
-        return Memory(
-            scope="unified",
-            total_bytes=vm.total,
-            used_bytes=vm.used,
-            free_bytes=vm.available,
-            unified=True,
-            source="psutil",
-        )
+        return Memory.system(scope="unified", unified=True)
 
     @property
     def clock_readings(self) -> tuple[Clock, ...]:

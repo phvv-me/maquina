@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import pytest
 
 import mainboard.host as host_mod
@@ -60,12 +58,23 @@ def test_cpu_model_name_from_cpuinfo(monkeypatch: pytest.MonkeyPatch) -> None:
     assert host.cpu == "Intel(R) Xeon(R) Platinum 8480C"
 
 
+PI_CPUINFO = """processor\t: 0
+CPU implementer\t: 0x41
+CPU part\t: 0xd08
+
+processor\t: 1
+CPU implementer\t: 0x41
+CPU part\t: 0xd08
+"""
+
+
 @pytest.mark.usefixtures("linux_host")
 def test_arm_cpu_name_falls_back_to_midr(monkeypatch: pytest.MonkeyPatch) -> None:
     """With no model-name line, ARM MIDR implementer/part IDs name the cores."""
     host = make_host(monkeypatch, GRACE_CPUINFO)
     assert host.cpu == host.arm_cpu_name
-    assert host.arm_cpu_name == "2x Arm part 0xd4f"
+    assert host.arm_cpu_name == "2x Arm Neoverse-V2"
+    assert make_host(monkeypatch, PI_CPUINFO).arm_cpu_name == "2x Arm Cortex-A72"
 
 
 @pytest.mark.usefixtures("linux_host")
@@ -90,6 +99,22 @@ def test_cpu_vendor_from_implementer(
 ) -> None:
     """CPU vendor is read from the MIDR implementer code."""
     host = make_host(monkeypatch, f"processor\t: 0\nCPU implementer\t: {implementer}\n")
+    assert host.cpu_vendor == expected
+
+
+@pytest.mark.usefixtures("linux_host")
+@pytest.mark.parametrize(
+    ("vendor_id", "expected"),
+    [
+        ("GenuineIntel", Vendor.INTEL),
+        ("AuthenticAMD", Vendor.AMD),
+    ],
+)
+def test_cpu_vendor_from_x86_vendor_id(
+    vendor_id: str, expected: Vendor, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """On Linux x86 the vendor comes from the cpuinfo `vendor_id` field."""
+    host = make_host(monkeypatch, f"processor\t: 0\nvendor_id\t: {vendor_id}\n")
     assert host.cpu_vendor == expected
 
 

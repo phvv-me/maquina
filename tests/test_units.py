@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import pytest
 
 import mainboard
@@ -47,7 +45,7 @@ def test_base_gpu_defaults_and_snapshot() -> None:
 def test_cpu_exposes_identity_and_memory(monkeypatch: pytest.MonkeyPatch) -> None:
     """A `CPU` surfaces its identity fields and a system memory reading."""
     vm = type("VM", (), {"total": 64 * 1024**3, "used": 8 * 1024**3, "available": 56 * 1024**3})()
-    monkeypatch.setattr("mainboard.cpu.psutil.virtual_memory", lambda: vm)
+    monkeypatch.setattr("mainboard.models.memory.psutil.virtual_memory", lambda: vm)
     cpu = CPU(
         name_value="Apple M4 Pro",
         architecture_value="arm64",

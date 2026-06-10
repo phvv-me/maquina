@@ -1,12 +1,12 @@
-from __future__ import annotations
-
 import pytest
 
 from mainboard import (
     AMDGPU,
+    GPU,
     GPUSnapshot,
     IntelGPU,
     IntelNPU,
+    Machine,
     NvidiaGPU,
     QualcommGPU,
     QualcommNPU,
@@ -118,6 +118,19 @@ def test_apple_gpu_records_tolerate_profiler_failure(monkeypatch: pytest.MonkeyP
     assert AppleGPU.gpu_records() == ()
 
 
+def test_apple_units_tolerate_empty_hardware_records(monkeypatch: pytest.MonkeyPatch) -> None:
+    """An empty `SPHardwareDataType` list degrades identity fields instead of raising."""
+    records = ({"sppci_device_type": "spdisplays_gpu", "sppci_model": "Apple M4 Pro"},)
+    monkeypatch.setattr(AppleGPU, "gpu_records", classmethod(lambda cls: records))
+    monkeypatch.setattr(apple_profile, "apple_system_profile", lambda: {"SPHardwareDataType": []})
+    gpu = AppleGPU(index=0)
+    assert gpu.uuid == ""
+    assert gpu.architecture == "Apple M4 Pro"  # falls back to the GPU name
+    npu = AppleNPU()
+    assert npu.architecture == "Apple Silicon"
+    assert npu.name == "Apple Silicon Neural Engine"
+
+
 def test_nvidia_detects_and_describes_devices(nvidia_host: object) -> None:
     """The NVIDIA provider reads identity, capability, and memory from the fakes."""
     assert NvidiaGPU.is_available() is True
@@ -172,7 +185,7 @@ def test_nvidia_nvml_only_paths(nvidia_host_no_cuda_core: FakeNvidiaApis) -> Non
     assert gpu.name == "NVIDIA GeForce RTX 4090"
     assert gpu.uuid == "GPU-deadbeef"
     assert gpu.sm_count == 128
-    assert gpu.architecture == "Ampere"  # from the compute-capability table (cc 8.x)
+    assert gpu.architecture == "Ada"  # from the compute-capability table (cc 8.9)
     assert (gpu.utilization.gpu_pct, gpu.utilization.memory_pct) == (42, 17)
     assert gpu.memory.total_bytes == 24 * 1024**3
     expected_bw = 10501 * 1e3 * 2 * 384 / 8 / 1e6
@@ -257,6 +270,59 @@ def test_nvidia_sensors_degrade_on_nvml_errors(
     assert gpu.processes == []
 
 
+def test_nvidia_thermal_and_utilization_degrade_on_nvml_errors(
+    nvidia_host_no_cuda_core: FakeNvidiaApis, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """On devices like GB10 the thermal and utilization sensors degrade to zeros."""
+
+    def boom(*args: object, **kwargs: object) -> object:
+        raise FakeNvidiaApis().nvml.NotSupportedError
+
+    for method in (
+        "device_get_temperature_v",
+        "device_get_temperature_threshold",
+        "device_get_current_clocks_event_reasons",
+        "device_get_utilization_rates",
+    ):
+        monkeypatch.setattr(nvidia_host_no_cuda_core.nvml, method, boom)
+    gpu = NvidiaGPU(index=0)
+    assert gpu.thermal.temperature_c == 0
+    assert gpu.thermal.slowdown_threshold_c == 0
+    assert gpu.thermal.throttle_reasons == 0
+    assert (gpu.utilization.gpu_pct, gpu.utilization.memory_pct) == (0, 0)
+
+
+def test_nvidia_thermal_keeps_temperature_when_thresholds_unsupported(
+    nvidia_host: FakeNvidiaApis, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A threshold read failing mid-way still surfaces the temperature already read."""
+
+    def boom(*args: object, **kwargs: object) -> object:
+        raise FakeNvidiaApis().nvml.NotSupportedError
+
+    monkeypatch.setattr(nvidia_host.nvml, "device_get_temperature_threshold", boom)
+    thermal = NvidiaGPU(index=0).thermal
+    assert thermal.temperature_c == 65
+    assert thermal.slowdown_threshold_c == 0
+
+
+def test_nvidia_utilization_degrades_when_cuda_core_unsupported(
+    nvidia_host: FakeNvidiaApis, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A `cuda.core` device that cannot report utilization yields zeros, not a crash."""
+
+    class Unsupported:
+        NotSupportedError = FakeError
+
+        @property
+        def utilization(self) -> object:
+            raise self.NotSupportedError
+
+    gpu = NvidiaGPU(index=0)
+    monkeypatch.setattr(type(gpu), "system_device", Unsupported())
+    assert (gpu.utilization.gpu_pct, gpu.utilization.memory_pct) == (0, 0)
+
+
 def test_nvidia_falls_back_to_runtime_when_nvml_memory_unsupported(
     nvidia_host: object, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -296,7 +362,7 @@ def test_nvidia_reads_devices_without_cuda_core(monkeypatch: pytest.MonkeyPatch)
     assert gpu.name == "NVIDIA GeForce RTX 4090"
     assert gpu.uuid == "GPU-deadbeef"
     assert str(gpu.cuda_architecture) == "8.9"
-    assert gpu.architecture == "Ampere"
+    assert gpu.architecture == "Ada"
     assert gpu.sm_count == 128
     mem = gpu.memory
     assert (mem.total_bytes, mem.used_bytes, mem.source) == (24 * 1024**3, 6 * 1024**3, "nvml")
@@ -386,3 +452,22 @@ def test_nvidia_unavailable_when_imports_fail(monkeypatch: pytest.MonkeyPatch) -
     nvidia_apis_module.nvidia_apis.cache_clear()
     monkeypatch.setattr(nvidia_apis_module, "nvidia_apis", boom)
     assert NvidiaGPU.is_available() is False
+
+
+@pytest.mark.usefixtures("apple_host")
+def test_machine_degrades_without_cuda_bindings(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A base install without the `[cuda]` extra reports no NVIDIA devices.
+
+    Simulates the bindings being absent at the import seam itself (the real
+    `NvidiaApis` constructor runs and fails to import `cuda.bindings.runtime`),
+    so `GPU.all` and `Machine` detection degrade instead of raising."""
+
+    def absent(name: str) -> object:
+        raise ModuleNotFoundError(f"No module named {name!r}")
+
+    monkeypatch.setattr(nvidia_apis_module, "import_module", absent)
+    nvidia_apis_module.nvidia_apis.cache_clear()
+    assert NvidiaGPU.is_available() is False
+    assert NvidiaGPU.all() == ()
+    assert all(gpu.vendor is not Vendor.NVIDIA for gpu in GPU.all())
+    assert all(gpu.vendor is not Vendor.NVIDIA for gpu in Machine().gpus)

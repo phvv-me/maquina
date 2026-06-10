@@ -4,10 +4,10 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "mainboard"
-version = "0.0.5"
+version = "0.0.6"
 description = "CPU, GPU, and NPU hardware topology and telemetry for Python."
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.14"
 license = "Apache-2.0"
 license-files = ["LICENSE"]
 authors = [{ name = "Pedro Valois", email = "contact@phvv.me" }]
@@ -26,7 +26,6 @@ classifiers = [
   "Development Status :: 3 - Alpha",
   "Intended Audience :: Developers",
   "Programming Language :: Python :: 3",
-  "Programming Language :: Python :: 3.13",
   "Programming Language :: Python :: 3.14",
   "Topic :: System :: Hardware",
   "Topic :: System :: Monitoring",
@@ -38,13 +37,20 @@ dependencies = [
   "psutil>=7,<8",
   "pydantic>=2.13,<3",
   "rich>=13",
+]
+
+[project.optional-dependencies]
+# NVIDIA telemetry backend (`pip install mainboard[cuda]`). The base install stays pure
+# Python so GPU-less Linux hosts (e.g. a Raspberry Pi) never pull numpy and the CUDA
+# stack. The Linux marker stays inside the extra because the bindings ship no macOS
+# wheels, which keeps `mainboard[cuda]` resolvable everywhere and a no-op on Apple hosts.
+cuda = [
   "cuda-bindings>=13.3,<14; platform_system == 'Linux'",
   "cuda-core>=1,<2; platform_system == 'Linux'",
   "cuda-python>=13.3,<14; platform_system == 'Linux'",
 ]
-
-[project.optional-dependencies]
 dev = [
+  "mainboard[cuda]",
   "hypothesis>=6",
   "mypy>=1.13",
   "pyrefly>=1",
@@ -87,7 +93,7 @@ mainboard = ["assets/*.svg", "py.typed"]
 
 [tool.ruff]
 line-length = 99
-target-version = "py313"
+target-version = "py314"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]
@@ -98,7 +104,7 @@ search-path = ["src", "."]
 python-platform = "linux"  # analyze the POSIX paths uniformly; Windows-only code degrades at runtime
 
 [tool.mypy]
-python_version = "3.13"
+python_version = "3.14"
 strict = true
 disallow_any_explicit = true
 plugins = ["pydantic.mypy"]

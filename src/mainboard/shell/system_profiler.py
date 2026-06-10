@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import json
 from functools import cache
 
@@ -24,5 +22,5 @@ def system_profiler(*datatypes: str) -> SystemProfile:
     try:
         parsed: SystemProfile = json.loads(local["system_profiler"]("-json", *datatypes))
         return parsed
-    except (CommandNotFound, OSError, json.JSONDecodeError):
+    except CommandNotFound, OSError, json.JSONDecodeError:
         return {}

@@ -9,8 +9,6 @@ Run: ``pytest benchmarks --benchmark-only`` (add ``-q``). Compare the ``Mean`` c
 across the ``config`` params. Kept out of the default test run (its own directory).
 """
 
-from __future__ import annotations
-
 import pytest
 
 from mainboard.profiling import Activity, Profiler, region

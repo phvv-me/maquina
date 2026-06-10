@@ -1,9 +1,6 @@
-from __future__ import annotations
-
 import platform
 from functools import cache, cached_property
 
-import psutil
 from pydantic import Field
 
 from ...enums import Vendor
@@ -33,7 +30,7 @@ class AppleGPU(GPU):
         """Apple GPU records from `system_profiler`."""
         if platform.system() != "Darwin":
             return ()
-        records = profile.apple_system_profile().get("SPDisplaysDataType", [])
+        records = profile.apple_system_profile().get("SPDisplaysDataType") or []
         return tuple(
             record for record in records if record.get("sppci_device_type") == "spdisplays_gpu"
         )
@@ -56,14 +53,12 @@ class AppleGPU(GPU):
     @cached_property
     def uuid(self) -> str:
         """Stable system UUID used as the integrated GPU identifier."""
-        hardware = profile.apple_system_profile().get("SPHardwareDataType", [{}])[0]
-        return str(hardware.get("platform_UUID") or "")
+        return str(profile.hardware_record().get("platform_UUID") or "")
 
     @cached_property
     def architecture(self) -> str:
         """Apple SoC family backing this GPU."""
-        hardware = profile.apple_system_profile().get("SPHardwareDataType", [{}])[0]
-        return str(hardware.get("chip_type") or self.name)
+        return str(profile.hardware_record().get("chip_type") or self.name)
 
     @cached_property
     def core_count(self) -> int:
@@ -81,15 +76,7 @@ class AppleGPU(GPU):
     @property
     def memory(self) -> Memory:
         """Unified memory visible to CPU, GPU, and Neural Engine."""
-        vm = psutil.virtual_memory()
-        return Memory(
-            scope="unified",
-            total_bytes=vm.total,
-            used_bytes=vm.used,
-            free_bytes=vm.available,
-            unified=True,
-            source="psutil",
-        )
+        return Memory.system(scope="unified", unified=True)
 
     @property
     def clock_readings(self) -> tuple[Clock, ...]:

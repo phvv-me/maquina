@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from collections.abc import Iterator
 from typing import Any
 
@@ -107,7 +105,9 @@ class FakeVirtualMemory:
 @pytest.fixture
 def fake_psutil_memory(monkeypatch: pytest.MonkeyPatch) -> None:
     """Pin psutil's virtual-memory reading so unified-memory paths are deterministic."""
-    monkeypatch.setattr(apple_gpu.psutil, "virtual_memory", lambda: FakeVirtualMemory())
+    from mainboard.models import memory as memory_mod
+
+    monkeypatch.setattr(memory_mod.psutil, "virtual_memory", lambda: FakeVirtualMemory())
 
 
 class FakeError(Exception):

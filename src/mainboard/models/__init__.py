@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from ..enums import ToolCategory
 from .board import Board
 from .clock import Clock
@@ -9,7 +7,6 @@ from .compute_capability import ComputeCapability
 from .cuda_python_info import CudaPythonInfo
 from .detected_tool import DetectedTool
 from .drive_info import DriveInfo
-from .energy_interval import EnergyInterval
 from .energy_reading import EnergyReading
 from .environment import Environment
 from .gpu_snapshot import GPUSnapshot
@@ -40,7 +37,6 @@ __all__ = [
     "CudaPythonInfo",
     "DetectedTool",
     "DriveInfo",
-    "EnergyInterval",
     "EnergyReading",
     "Environment",
     "GPUSnapshot",

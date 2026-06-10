@@ -5,8 +5,6 @@ Run: ``python docs/assets/capabilities.gen.py``. Flip a status from ``R`` (roadm
 ``R`` roadmap. The map is CUDA-first; macOS/AMD coverage is noted in the footer.
 """
 
-from __future__ import annotations
-
 from pathlib import Path
 
 GREEN, AMBER, GRAY, INK, SUB, LINE, BG = (

@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from pathlib import Path
 
 import pytest
@@ -11,7 +9,6 @@ from mainboard import (
     ClockInfo,
     ComputeCapability,
     CpuSnapshot,
-    EnergyInterval,
     EnergyReading,
     Environment,
     GPUSnapshot,
@@ -25,7 +22,6 @@ from mainboard import (
 )
 from mainboard.enums import Scheduler, UnitKind, Vendor
 from mainboard.models.compiler_info import CompilerInfo
-from mainboard.models.dimm_card import DimmCard
 
 byte_counts = st.integers(min_value=0, max_value=10**15)
 names = st.text(st.characters(blacklist_categories=("Cs", "Cc")), max_size=24)
@@ -150,21 +146,27 @@ def test_memory_ratios_and_unit_conversions(total: int, used: int) -> None:
     assert pool.free_gb == free / 1024**3
 
 
-@given(power=st.integers(0, 10**6), energy=st.integers(0, 10**9))
-def test_energy_reading_and_interval_conversions(power: int, energy: int) -> None:
-    """Energy conversions are linear and average power guards a zero interval."""
+@given(power=st.integers(0, 10**6))
+def test_energy_reading_converts_to_watts(power: int) -> None:
+    """A power reading converts milliwatts to watts linearly."""
     assert EnergyReading(power_mw=power).power_w == power / 1000.0
-    interval = EnergyInterval(energy_mj=energy, duration_s=0.0)
-    assert interval.energy_j == energy / 1000.0
-    assert interval.energy_wh == energy / 3_600_000.0
-    assert interval.avg_power_w == 0.0
 
 
-@given(energy=st.integers(1, 10**9), duration=st.floats(0.1, 3600, allow_nan=False))
-def test_energy_interval_average_power(energy: int, duration: float) -> None:
-    """A positive interval reports average power as joules over seconds."""
-    interval = EnergyInterval(energy_mj=energy, duration_s=duration)
-    assert interval.avg_power_w == pytest.approx(interval.energy_j / duration)
+@pytest.mark.parametrize(
+    ("major", "minor", "expected"),
+    [
+        (7, 0, "Volta"),
+        (7, 5, "Turing"),
+        (8, 0, "Ampere"),
+        (8, 9, "Ada"),
+        (9, 0, "Hopper"),
+        (12, 0, "Blackwell"),
+        (5, 0, "Unknown"),
+    ],
+)
+def test_compute_capability_architecture_names(major: int, minor: int, expected: str) -> None:
+    """Exact Turing/Ada pairs win over the major-only family mapping."""
+    assert ComputeCapability(major, minor).architecture == expected
 
 
 @given(major=st.integers(0, 99), minor=st.integers(0, 99))
@@ -230,14 +232,6 @@ def test_clock_info_and_utilization_defaults_round_trip() -> None:
     assert ClockInfo().model_dump() == {"sm_mhz": 0, "memory_mhz": 0}
     util = Utilization(gpu_pct=50, memory_pct=25)
     assert Utilization.model_validate_json(util.model_dump_json()) == util
-
-
-@given(size=byte_counts, speed=st.none() | st.integers(0, 12000))
-def test_dimm_card_capacity_and_population(size: int, speed: int | None) -> None:
-    """A DIMM card is populated exactly when it carries bytes."""
-    card = DimmCard(locator="DIMM_A1", size_bytes=size, speed_mhz=speed)
-    assert card.is_populated == (size > 0)
-    assert card.size_gb == size / 1024**3
 
 
 @pytest.mark.parametrize(

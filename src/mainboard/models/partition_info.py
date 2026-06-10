@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from functools import cached_property
 
 import psutil
@@ -46,7 +44,7 @@ class PartitionInfo(FrozenModel):
         try:
             usage: DiskUsage = psutil.disk_usage(self.mountpoint)
             return usage
-        except (PermissionError, OSError):
+        except PermissionError, OSError:
             return None
 
     @property

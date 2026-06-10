@@ -15,7 +15,7 @@ pip install mainboard
 mainboard
 ```
 
-En Linux, los bindings de CUDA se instalan automáticamente, por lo que las GPU NVIDIA se detectan sin configuración adicional. En macOS no se instala nada relacionado con CUDA, y la detección degrada con normalidad en hosts sin GPU NVIDIA.
+La instalación base es ligera y de Python puro, cubre el sondeo de CPU y Apple sin instalar nada relacionado con CUDA. Para detección y telemetría de GPU NVIDIA instala el extra `cuda`, `pip install mainboard[cuda]`, que trae los bindings de CUDA Python en Linux. La detección degrada con normalidad a cero dispositivos NVIDIA cuando faltan los bindings o el hardware.
 
 ¿Trabajas en un proyecto [chefe](https://phvv.me/chefe)? `chefe add mainboard -l python`.
 

@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from pathlib import Path
 
 from .base import FrozenModel
@@ -15,10 +13,14 @@ class HostDisk(FrozenModel):
 
     @property
     def cards(self) -> tuple[DriveInfo, ...]:
-        """Physical block devices enumerated from `/sys/block/`."""
+        """Physical block devices enumerated from `/sys/block/`; empty when sysfs is absent."""
+        try:
+            dev_dirs = sorted(Path("/sys/block").iterdir())
+        except FileNotFoundError:
+            return ()
         return tuple(
             DriveInfo(name=dev_dir.name)
-            for dev_dir in sorted(Path("/sys/block").iterdir())
+            for dev_dir in dev_dirs
             if not any(dev_dir.name.startswith(pfx) for pfx in _SKIP_PREFIXES)
             and (size := DriveInfo._read_sys(f"/sys/block/{dev_dir.name}/size"))
             and int(size) * 512 > 0

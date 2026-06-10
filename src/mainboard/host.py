@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import platform
 import re
 from collections import Counter
@@ -31,7 +29,13 @@ _VENDOR_BY_IMPLEMENTER = {
     "0x51": Vendor.QUALCOMM,
     "0x61": Vendor.APPLE,
 }
+_VENDOR_BY_VENDOR_ID = {
+    "GenuineIntel": Vendor.INTEL,
+    "AuthenticAMD": Vendor.AMD,
+}
 _ARM_PARTS = {
+    ("0x41", "0xd08"): "Cortex-A72",
+    ("0x41", "0xd4f"): "Neoverse-V2",
     ("0x41", "0xd85"): "Cortex-X925",
     ("0x41", "0xd87"): "Cortex-A725",
 }
@@ -65,6 +69,8 @@ class Host:
         if platform.system() == "Darwin":
             return Vendor.APPLE
         for record in self.cpuinfo_records:
+            if vendor := _VENDOR_BY_VENDOR_ID.get(record.get("vendor_id", "")):
+                return vendor
             implementer = record.get("CPU implementer", "").lower()
             if vendor := _VENDOR_BY_IMPLEMENTER.get(implementer):
                 return vendor
@@ -123,21 +129,14 @@ class Host:
         """Current CPU frequency in MHz; `None` if the platform cannot report it."""
         try:
             freq = psutil.cpu_freq()
-        except (AttributeError, NotImplementedError, OSError):
+        except AttributeError, NotImplementedError, OSError:
             return None
         return freq.current if freq else None
 
     @property
     def memory(self) -> Memory:
         """Live system RAM usage sampled from psutil."""
-        vm = psutil.virtual_memory()
-        return Memory(
-            scope="system",
-            total_bytes=vm.total,
-            used_bytes=vm.used,
-            free_bytes=vm.available,
-            source="psutil",
-        )
+        return Memory.system()
 
     @property
     def memory_hardware(self) -> MemoryHardware:

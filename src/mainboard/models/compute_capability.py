@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from typing import NamedTuple
 
 ARCHITECTURE_BY_MAJOR = {
@@ -9,6 +7,10 @@ ARCHITECTURE_BY_MAJOR = {
     9: "Hopper",
     10: "Blackwell",
     12: "Blackwell",
+}
+ARCHITECTURE_BY_CAPABILITY = {
+    (7, 5): "Turing",
+    (8, 9): "Ada",
 }
 
 
@@ -41,8 +43,9 @@ class ComputeCapability(NamedTuple):
     def architecture(self) -> str:
         """Human-readable NVIDIA architecture family for this capability.
 
-        Ada (8.9) and Turing (7.5) share a major with Ampere/Volta; the
-        common case maps by major and is good enough as a `cuda.core`-free
-        fallback. Returns `Unknown` for unmapped majors.
+        Ada (8.9) and Turing (7.5) share a major with Ampere/Volta, so the
+        exact pair is checked first and the rest maps by major as a
+        `cuda.core`-free fallback. Returns `Unknown` for unmapped majors.
         """
-        return ARCHITECTURE_BY_MAJOR.get(self.major, "Unknown")
+        exact = ARCHITECTURE_BY_CAPABILITY.get((self.major, self.minor))
+        return exact or ARCHITECTURE_BY_MAJOR.get(self.major, "Unknown")

@@ -6,8 +6,6 @@ fake one-GPU probe, and auto-annotation is driven through the real `sys.monitori
 with a no-op tracer — so nothing here needs a GPU.
 """
 
-from __future__ import annotations
-
 from typing import Any
 
 import pytest
@@ -287,6 +285,56 @@ def test_sampler_skips_when_no_region_is_open(
     monkeypatch.setattr(profiler._stop, "wait", lambda _interval: next(waits))
     profiler._sample()  # the live tick sees no frames and continues to the stop
     assert profiler.summaries() == []
+
+
+def test_sampler_survives_a_snapshot_failure(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A transient snapshot failure skips that tick instead of killing the sampler."""
+    from mainboard.models.gpu_snapshot import GPUSnapshot
+
+    class FlakyGPU:
+        def __init__(self) -> None:
+            self.calls = 0
+
+        def snapshot(self, name: str = "") -> GPUSnapshot:
+            self.calls += 1
+            if self.calls == 1:
+                raise RuntimeError("nvml hiccup")
+            return GPUSnapshot(name=name)
+
+    profiler = Profiler(sample_interval_ms=1)
+    profiler._gpu = FlakyGPU()  # pyrefly: ignore[bad-assignment]
+    profiler.enter("region")
+    waits = iter([False, False, True])  # a failing tick, a good tick, then stop
+    monkeypatch.setattr(profiler._stop, "wait", lambda _interval: next(waits))
+    profiler._sample()
+    profiler.exit("region", wall_ns=1)
+    assert profiler.summaries()[0].samples == 1  # only the good tick landed
+
+
+def test_exit_closes_the_calling_threads_frame() -> None:
+    """A worker's exit closes its own frame even when the main thread opened a later one."""
+    import threading
+
+    profiler = Profiler()
+    worker_open = threading.Event()
+    main_open = threading.Event()
+
+    def work() -> None:
+        profiler.enter("worker")
+        worker_open.set()
+        assert main_open.wait(timeout=5)
+        profiler.exit("worker", wall_ns=1)
+
+    thread = threading.Thread(target=work)
+    thread.start()
+    assert worker_open.wait(timeout=5)
+    profiler.enter("main")
+    main_open.set()
+    thread.join(timeout=5)
+    # the worker's exit must not have stolen the main thread's still-open frame
+    assert [frame.name for frame in profiler._frames] == ["main"]
+    profiler.exit("main", wall_ns=1)
+    assert [summary.name for summary in profiler.summaries()] == ["worker", "main"]
 
 
 def test_hot_region_attributes_kernel_to_narrowest_window() -> None:

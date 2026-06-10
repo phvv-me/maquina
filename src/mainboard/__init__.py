@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from .cpu import CPU
 from .enums import (
     CmakeBuildType,
@@ -25,7 +23,6 @@ from .models import (
     CudaPythonInfo,
     DetectedTool,
     DriveInfo,
-    EnergyInterval,
     EnergyReading,
     Environment,
     GPUSnapshot,
@@ -94,7 +91,6 @@ __all__ = [
     "DetectedTool",
     "DiskKind",
     "DriveInfo",
-    "EnergyInterval",
     "EnergyReading",
     "Environment",
     "GPUSnapshot",

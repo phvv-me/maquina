@@ -6,8 +6,6 @@ CUPTI/NVTX tracer — none of which needs a real GPU here: the device clock, the
 activity stream, and the NVTX/ROCTx/signpost libraries are all faked.
 """
 
-from __future__ import annotations
-
 import json
 import sys
 import types

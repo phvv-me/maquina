@@ -1,4 +1,4 @@
-from __future__ import annotations
+import psutil
 
 from .base import FrozenModel
 
@@ -22,6 +22,23 @@ class Memory(FrozenModel):
     unified: bool = False
     source: str = ""
     supported: bool = True
+
+    @classmethod
+    def system(cls, scope: str = "system", unified: bool = False) -> Memory:
+        """Live system RAM usage sampled from psutil.
+
+        scope: region name to record, e.g. `system` or `unified`.
+        unified: whether CPU and accelerators share this pool.
+        """
+        vm = psutil.virtual_memory()
+        return cls(
+            scope=scope,
+            total_bytes=vm.total,
+            used_bytes=vm.used,
+            free_bytes=vm.available,
+            unified=unified,
+            source="psutil",
+        )
 
     @property
     def total_gb(self) -> float:

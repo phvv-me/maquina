@@ -14,7 +14,8 @@
 ## Installation
 
 ```sh
-pip install mainboard
+pip install mainboard         # CPU and Apple probing, pure Python
+pip install mainboard[cuda]   # adds NVIDIA telemetry via the CUDA Python bindings
 ```
 
 Working in a [chefe](https://phvv.me/chefe) project? Add it to your manifest:
@@ -23,7 +24,7 @@ Working in a [chefe](https://phvv.me/chefe) project? Add it to your manifest:
 chefe add mainboard -l python
 ```
 
-On Linux the CUDA bindings install automatically, so NVIDIA GPUs are detected out of the box. On macOS nothing CUDA-related is pulled in, and provider detection degrades gracefully when no NVIDIA GPU is present.
+The base install is light and pure Python, so GPU-less Linux hosts like a Raspberry Pi pull nothing CUDA-related. The `cuda` extra installs the NVIDIA bindings on Linux for full GPU detection and telemetry, and provider detection degrades gracefully to no NVIDIA devices whenever the bindings or the hardware are absent.
 
 ## What it is
 

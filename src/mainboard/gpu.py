@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from functools import cached_property
 from typing import TYPE_CHECKING, ClassVar
 
@@ -36,8 +34,7 @@ class GPU(Unit, Registry):
     @classmethod
     def all(cls) -> tuple[GPU, ...]:
         """Return GPUs visible across every registered provider."""
-        providers = (p for p in cls.registry() if p is not GPU)
-        return tuple(gpu for provider in providers for gpu in provider.all())
+        return tuple(gpu for provider in cls.implementations() for gpu in provider.all())
 
     @cached_property
     def name(self) -> str:

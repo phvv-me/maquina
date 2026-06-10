@@ -1,9 +1,6 @@
-from __future__ import annotations
-
 from functools import cached_property
 from typing import ClassVar
 
-import psutil
 from pydantic import Field
 
 from .enums import UnitKind, Vendor
@@ -49,11 +46,4 @@ class CPU(Unit):
     @property
     def memory(self) -> Memory:
         """System memory visible to the CPU."""
-        vm = psutil.virtual_memory()
-        return Memory(
-            scope="system",
-            total_bytes=vm.total,
-            used_bytes=vm.used,
-            free_bytes=vm.available,
-            source="psutil",
-        )
+        return Memory.system()

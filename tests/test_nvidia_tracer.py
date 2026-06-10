@@ -7,8 +7,6 @@ callback, device-support probing (including a kind that raises `NotImplementedEr
 like `MEMORY` on GB10), and the callback-API call counter — none needing real hardware.
 """
 
-from __future__ import annotations
-
 import types
 from typing import Any
 

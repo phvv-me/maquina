@@ -15,7 +15,7 @@ pip install mainboard
 mainboard
 ```
 
-在 Linux 上，CUDA 绑定会自动安装，因此 NVIDIA GPU 开箱即可被检测到。macOS 不会引入任何 CUDA 相关依赖，在没有 NVIDIA GPU 的主机上检测会优雅降级。
+基础安装轻量且为纯 Python，覆盖 CPU 与 Apple 探测，不会引入任何 CUDA 相关依赖。如需 NVIDIA GPU 检测与遥测，请安装 `cuda` 附加项，即 `pip install mainboard[cuda]`，它会在 Linux 上引入 CUDA Python 绑定。当绑定或硬件缺失时，检测会优雅降级为没有 NVIDIA 设备。
 
 在 [chefe](https://phvv.me/chefe) 项目中工作？`chefe add mainboard -l python`。
 

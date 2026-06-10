@@ -5,8 +5,6 @@ Everything here mocks the CUPTI/NVML seam — the `Profiler`, the active `Tracer
 `conftest` (`FakeTracer`, `RecordingProfiler`) so other profiling tests can reuse them.
 """
 
-from __future__ import annotations
-
 import pytest
 from hypothesis import given
 from hypothesis import strategies as st

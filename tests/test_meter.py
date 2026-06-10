@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import mainboard
 from mainboard import Memory, Meter, meter
 from mainboard.enums import Vendor

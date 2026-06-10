@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from typing import ClassVar
 
 from patos import Registry
@@ -20,5 +18,4 @@ class NPU(Unit, Registry):
     @classmethod
     def all(cls) -> tuple[NPU, ...]:
         """Return NPUs visible across every registered provider."""
-        providers = (p for p in cls.registry() if p is not NPU)
-        return tuple(npu for provider in providers for npu in provider.all())
+        return tuple(npu for provider in cls.implementations() for npu in provider.all())

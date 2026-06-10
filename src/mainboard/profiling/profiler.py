@@ -7,9 +7,8 @@ thread polls the device while `region`/`@profile`/auto-annotated calls bracket t
 work; each region's snapshots aggregate into a :class:`RegionSummary`.
 """
 
-from __future__ import annotations
-
 import importlib
+import logging
 import threading
 from pathlib import Path
 from types import TracebackType
@@ -28,12 +27,16 @@ if TYPE_CHECKING:
     from ..models.gpu_snapshot import GPUSnapshot
 
 
+logger = logging.getLogger(__name__)
+
+
 class _Frame:
-    """A live region: its name, device-clock start, and snapshots sampled while open."""
+    """A live region: its name, owning thread, device-clock start, and sampled snapshots."""
 
     def __init__(self, name: str, start_ns: int) -> None:
         self.name = name
         self.start_ns = start_ns
+        self.thread = threading.get_ident()
         self.snaps: list[GPUSnapshot] = []
 
 
@@ -115,9 +118,14 @@ class Profiler:
             self._frames.append(_Frame(name, start_ns))
 
     def exit(self, name: str, wall_ns: int) -> None:
-        """Close the region frame and fold its snapshots into a summary."""
+        """Close the calling thread's innermost frame and fold its snapshots into a summary.
+
+        Auto-annotation can fire in worker threads, so a frame is owned by the
+        thread that opened it; popping the shared LIFO blindly would misattribute
+        regions across threads.
+        """
         with self._lock:
-            frame = self._frames.pop() if self._frames else None
+            frame = self._pop_thread_frame(threading.get_ident())
         if frame is None:
             return
         self._summaries.append(RegionSummary.from_snaps(name, wall_ns / 1e6, frame.snaps))
@@ -131,6 +139,13 @@ class Profiler:
                 )
             )
 
+    def _pop_thread_frame(self, thread: int) -> _Frame | None:
+        """Remove and return the innermost open frame owned by `thread` (caller holds the lock)."""
+        for position in range(len(self._frames) - 1, -1, -1):
+            if self._frames[position].thread == thread:
+                return self._frames.pop(position)
+        return None
+
     def _sample(self) -> None:
         interval = self.sample_interval_ms / 1000.0
         while not self._stop.wait(interval):
@@ -139,7 +154,12 @@ class Profiler:
                 name = frames[-1].name if frames else ""
             if not frames:
                 continue
-            snap = self._gpu.snapshot(name=name)
+            # thread entry point: a transient sensor failure must not end sampling
+            try:
+                snap = self._gpu.snapshot(name=name)
+            except Exception:
+                logger.warning("sampler skipped a tick on a snapshot failure", exc_info=True)
+                continue
             with self._lock:
                 for frame in frames:
                     frame.snaps.append(snap)

@@ -1,7 +1,5 @@
 """The reusable profiling helpers: `arch_config` dispatch and `profile_stages`."""
 
-from __future__ import annotations
-
 from functools import cached_property
 
 import pytest

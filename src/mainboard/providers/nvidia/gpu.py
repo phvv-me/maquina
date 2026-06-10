@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import logging
 from contextlib import suppress
 from functools import cached_property
@@ -38,7 +36,7 @@ class NvidiaGPU(GPU):
             api = apis.nvidia_apis()
             err, count = api.runtime.cudaGetDeviceCount()
             return err == api.runtime.cudaError_t.cudaSuccess and count > 0
-        except (ModuleNotFoundError, ImportError, OSError, RuntimeError):
+        except ModuleNotFoundError, ImportError, OSError, RuntimeError:
             return False
 
     @classmethod
@@ -272,31 +270,42 @@ class NvidiaGPU(GPU):
 
     @property
     def utilization(self) -> Utilization:
-        """GPU core and memory-controller utilization percentages."""
-        if not self.apis.has_cuda_core:
+        """GPU core and memory-controller utilization percentages; zeros if unsupported."""
+        if self.apis.has_cuda_core:
+            try:
+                utilization = self.system_device.utilization
+            except self.system_api.NotSupportedError:
+                return Utilization()
+            return Utilization(gpu_pct=utilization.gpu, memory_pct=utilization.memory)
+        with suppress(*self.apis.nvml_errors):
             rates = self.apis.nvml.device_get_utilization_rates(self.handle)
             return Utilization(gpu_pct=rates.gpu, memory_pct=rates.memory)
-        utilization = self.system_device.utilization
-        return Utilization(gpu_pct=utilization.gpu, memory_pct=utilization.memory)
+        return Utilization()
 
     @property
     def thermal(self) -> ThermalState:
-        """Die temperature, shutdown/slowdown thresholds, and throttle reasons."""
-        throttle = self.apis.nvml.device_get_current_clocks_event_reasons(self.handle)
+        """Die temperature, thresholds, and throttle reasons; zeros where unsupported."""
+        nvml = self.apis.nvml
+        temperature_c = 0
+        shutdown_threshold_c = 0
+        slowdown_threshold_c = 0
+        throttle_reasons = 0
+        with suppress(*self.apis.nvml_errors):
+            temperature_c = nvml.device_get_temperature_v(
+                self.handle, nvml.TemperatureSensors.TEMPERATURE_GPU
+            )
+            shutdown_threshold_c = nvml.device_get_temperature_threshold(
+                self.handle, nvml.TemperatureThresholds.TEMPERATURE_THRESHOLD_SHUTDOWN
+            )
+            slowdown_threshold_c = nvml.device_get_temperature_threshold(
+                self.handle, nvml.TemperatureThresholds.TEMPERATURE_THRESHOLD_SLOWDOWN
+            )
+            throttle_reasons = nvml.device_get_current_clocks_event_reasons(self.handle)
         return ThermalState(
-            temperature_c=self.apis.nvml.device_get_temperature_v(
-                self.handle,
-                self.apis.nvml.TemperatureSensors.TEMPERATURE_GPU,
-            ),
-            shutdown_threshold_c=self.apis.nvml.device_get_temperature_threshold(
-                self.handle,
-                self.apis.nvml.TemperatureThresholds.TEMPERATURE_THRESHOLD_SHUTDOWN,
-            ),
-            slowdown_threshold_c=self.apis.nvml.device_get_temperature_threshold(
-                self.handle,
-                self.apis.nvml.TemperatureThresholds.TEMPERATURE_THRESHOLD_SLOWDOWN,
-            ),
-            throttle_reasons=throttle,
+            temperature_c=temperature_c,
+            shutdown_threshold_c=shutdown_threshold_c,
+            slowdown_threshold_c=slowdown_threshold_c,
+            throttle_reasons=throttle_reasons,
         )
 
     @property

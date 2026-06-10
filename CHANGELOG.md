@@ -4,6 +4,31 @@ All notable changes to Mainboard are documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/), and this project uses semantic versioning while it is published.
 
+## [0.0.6] - 2026-06-10
+
+### Changed
+
+- Python 3.14 is now the floor, with native deferred annotation evaluation replacing every `from __future__ import annotations`.
+- The CUDA bindings (`cuda-bindings`, `cuda-core`, `cuda-python`) moved to an optional `cuda` extra, so a base install is pure Python with no numpy. `pip install mainboard` probes CPU and Apple hardware, `pip install mainboard[cuda]` adds NVIDIA telemetry, and a missing binding degrades to no NVIDIA devices instead of an import error.
+- Unguarded NVML thermal and utilization reads now degrade like the sibling sensors, and the profiler's sampler thread survives a transient sensor failure instead of dying silently for the session.
+- Profiler frames are tracked per thread, so auto annotation in worker threads can no longer steal another thread's region.
+
+### Added
+
+- ARM core names for Neoverse V2 (GH200 Grace) and Cortex A72 (Raspberry Pi 4), making the Grace tuned `-mcpu` compiler flag reachable.
+- x86 CPU vendor detection on Linux via `vendor_id`, so Intel and AMD report correctly.
+- `Memory.system` centralizes the psutil sampling the host, CPU, and Apple providers share.
+
+### Fixed
+
+- `HostDisk` crashed with `FileNotFoundError` on hosts without sysfs, such as macOS.
+- Compute capability 8.9 reported Ampere instead of Ada, and 7.5 reported Volta instead of Turing.
+- `system_profiler` data types mapped to an empty list no longer raise `IndexError` in the Apple GPU and NPU probes.
+
+### Removed
+
+- The dead `DimmCard` model and the never produced `EnergyInterval` export.
+
 ## [0.0.5] - 2026-06-10
 
 ### Added

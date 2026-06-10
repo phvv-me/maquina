@@ -8,8 +8,6 @@ GPU provider and self-register via :class:`Registry`; :meth:`detect` picks the o
 whose library is importable, preferring a match for a GPU actually present.
 """
 
-from __future__ import annotations
-
 import logging
 import time
 from typing import ClassVar
@@ -41,8 +39,7 @@ class Tracer(Registry):
     @classmethod
     def detect(cls) -> Tracer:
         """The best available tracer: one matching a present GPU, else any, else no-op."""
-        providers = (b for b in cls.registry() if b is not Tracer)
-        backends = [b for b in providers if b.is_available()]
+        backends = [b for b in cls.implementations() if b.is_available()]
         present = {gpu.vendor for gpu in GPU.all()}
         for backend in backends:
             if backend.vendor in present:

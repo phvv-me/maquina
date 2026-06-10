@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from pathlib import Path
 
 import pytest
@@ -242,3 +240,15 @@ def test_host_disk_enumerates_and_aggregates(monkeypatch: pytest.MonkeyPatch) ->
     assert [d.name for d in host.cards] == ["nvme0n1"]
     assert host.total_bytes == 200 * 512
     assert host.total_gb == 200 * 512 / 1024**3
+
+
+def test_host_disk_empty_without_sysfs(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A host with no `/sys/block` (e.g. macOS) reports no drives instead of raising."""
+
+    def boom(self: Path) -> object:
+        raise FileNotFoundError(self)
+
+    monkeypatch.setattr("mainboard.models.host_disk.Path.iterdir", boom)
+    host = HostDisk()
+    assert host.cards == ()
+    assert host.total_bytes == 0
